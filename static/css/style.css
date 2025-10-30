@@ -1,0 +1,336 @@
+/* ===== GLOBAL ===== */
+body {
+    margin: 0;
+    font-family: "Poppins", sans-serif;
+    background-color: #f5f8ff;
+    color: #222;
+    display: flex;
+    min-height: 100vh;
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar {
+    width: 250px;
+    background: linear-gradient(180deg, #007bff, #00aaff);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    padding: 25px 20px;
+    box-shadow: 3px 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar .logo {
+    display: flex;
+    align-items: center;
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 35px;
+    gap: 10px;
+}
+
+.sidebar nav {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.sidebar nav a {
+    text-decoration: none;
+    color: white;
+    font-weight: 500;
+    padding: 12px 15px;
+    border-radius: 10px;
+    transition: background 0.3s ease;
+}
+
+.sidebar nav a:hover,
+.sidebar nav a.active {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* ===== MAIN CONTENT ===== */
+.main-content {
+    flex-grow: 1;
+    padding: 30px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+/* ===== HEADER ===== */
+.main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.main-header h2 {
+    font-size: 26px;
+    color: #222;
+    font-weight: 600;
+    margin: 0;
+}
+
+/* ===== PROFILE BOX ===== */
+.profile-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #e8f1ff;
+    padding: 8px 15px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 500;
+    position: relative;
+}
+
+#hospitalName {
+    color: #007bff;
+}
+
+/* ===== DROPDOWN MENU ===== */
+.dropdown {
+    position: relative;
+}
+
+.dropbtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: #007bff;
+    padding: 2px 5px;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    background-color: #fff;
+    min-width: 120px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    z-index: 10;
+}
+
+.dropdown-content a {
+    color: #333;
+    padding: 10px;
+    text-decoration: none;
+    display: block;
+    border-radius: 8px;
+    transition: background 0.3s ease;
+}
+
+.dropdown-content a:hover {
+    background: #f0f7ff;
+    color: #007bff;
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+/* ===== STATISTICS ===== */
+#stats {
+    display: flex;
+    gap: 25px;
+    flex-wrap: wrap;
+}
+
+.stat-box {
+    flex: 1 1 45%;
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    transition: transform 0.2s ease;
+}
+
+.stat-box:hover {
+    transform: translateY(-3px);
+}
+
+.stat-box span {
+    font-size: 40px;
+    color: #007bff;
+    font-weight: 600;
+}
+
+.stat-box p {
+    margin-top: 8px;
+    color: #666;
+}
+
+/* ===== MAP ===== */
+.map-container {
+    background: white;
+    border-radius: 15px;
+    padding: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+#map {
+    width: 100%;
+    height: 400px;
+    border-radius: 10px;
+}
+
+/* ===== CASES SECTION ===== */
+.cases-section {
+    margin-top: 2rem;
+}
+
+.cases-section h2 {
+    margin-bottom: 1rem;
+    color: #333;
+}
+
+.case-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.card-header h3 {
+    margin: 0;
+    color: #007bff;
+    font-weight: 600;
+}
+
+.card-body p {
+    margin: 6px 0;
+    font-size: 15px;
+    color: #444;
+}
+
+.no-cases {
+    text-align: center;
+    color: #888;
+    background: #fff;
+    border-radius: 10px;
+    padding: 25px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* ===== SETTINGS SECTION ===== */
+.settings-section {
+    background: #fff;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    max-width: 600px;
+}
+
+.settings-section h2 {
+    margin-bottom: 20px;
+    color: #007bff;
+}
+
+.profile-info p {
+    font-size: 15px;
+    color: #333;
+    margin: 10px 0;
+}
+
+.edit-profile-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.edit-profile-form label {
+    font-weight: 500;
+    color: #333;
+}
+
+.edit-profile-form input {
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 15px;
+    transition: border 0.2s ease;
+}
+
+.edit-profile-form input:focus {
+    border-color: #007bff;
+    outline: none;
+}
+
+/* ===== BUTTONS ===== */
+.settings-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.settings-buttons button {
+    background: #007bff;
+    border: none;
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.settings-buttons button:hover {
+    background: #005fcc;
+}
+
+.settings-buttons .cancel-btn {
+    background: #ccc;
+    color: #222;
+}
+
+.settings-buttons .cancel-btn:hover {
+    background: #aaa;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+    body {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-around;
+        width: 100%;
+        padding: 15px;
+    }
+
+    .main-content {
+        padding: 20px;
+    }
+
+    #stats {
+        flex-direction: column;
+    }
+
+    .stat-box {
+        flex: 1 1 100%;
+    }
+
+    .settings-section {
+        max-width: 100%;
+    }
+}
+
+.update-message {
+    margin-top: 10px;
+    font-size: 14px;
+    font-weight: 500;
+}

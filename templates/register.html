@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Registration | SwiftAid</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body class="auth-body">
+    <div class="auth-container">
+        <div class="auth-box">
+            <h2>🏥 Register Hospital</h2>
+
+            {% if error %}
+                <div class="alert error">{{ error }}</div>
+            {% elif success %}
+                <div class="alert success">{{ success }}</div>
+            {% endif %}
+
+            <form action="{{ url_for('register') }}" method="POST">
+                <div class="input-group">
+                    <label for="hospital_name">Hospital Name</label>
+                    <input type="text" id="hospital_name" name="hospital_name" placeholder="Enter hospital name" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="email">Hospital Email</label>
+                    <input type="email" id="email" name="email" placeholder="Enter hospital email" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="phone">Hospital Phone</label>
+                    <input type="tel" id="phone" name="phone" placeholder="Enter hospital phone number" pattern="[0-9]{10}" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="location">Hospital Location</label>
+                    <input type="text" id="location" name="location" placeholder="City, State" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Enter password" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="confirm_password">Confirm Password</label>
+                    <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter password" required>
+                </div>
+
+                <button type="submit" class="auth-btn">Register</button>
+            </form>
+
+            <p class="switch-text">
+                Already have an account? <a href="{{ url_for('login') }}">Log in</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

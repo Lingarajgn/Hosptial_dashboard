@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Login | SwiftAid</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body class="auth-body">
+    <div class="auth-container">
+        <div class="auth-box">
+            <h2>🏥 Hospital Login</h2>
+
+            {% if error %}
+                <div class="alert error">{{ error }}</div>
+            {% elif success %}
+                <div class="alert success">{{ success }}</div>
+            {% endif %}
+
+            <form action="{{ url_for('login') }}" method="POST">
+                <div class="input-group">
+                    <label for="email">Hospital Email</label>
+                    <input type="email" id="email" name="email" placeholder="Enter your registered email" required>
+                </div>
+
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Enter password" required>
+                </div>
+
+                <button type="submit" class="auth-btn">Log In</button>
+            </form>
+
+            <p class="switch-text">
+                Forgot password? <a href="#">Reset</a><br>
+                New hospital? <a href="{{ url_for('register') }}">Register</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

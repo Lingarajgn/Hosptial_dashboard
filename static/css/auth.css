@@ -1,0 +1,126 @@
+/* 🌈 Background */
+body.auth-body {
+    font-family: "Poppins", sans-serif;
+    background: linear-gradient(135deg, #007bff, #00c6ff);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+}
+
+/* 🧾 Card Container */
+.auth-container {
+    width: 100%;
+    max-width: 420px;
+    background: #ffffff;
+    padding: 40px 35px;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    text-align: center;
+}
+
+/* 🏥 Heading */
+.auth-container h2 {
+    color: #007bff;
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+}
+
+/* 📋 Input Groups */
+.input-group {
+    text-align: left;
+    margin-bottom: 18px;
+}
+
+.input-group label {
+    display: block;
+    font-weight: 500;
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 6px;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: 0.3s ease;
+}
+
+.input-group input:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 4px rgba(0, 123, 255, 0.3);
+    outline: none;
+}
+
+/* 🔘 Button */
+.auth-btn {
+    width: 100%;
+    padding: 12px;
+    background: #007bff;
+    color: white;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.auth-btn:hover {
+    background: #005fcc;
+}
+
+/* 🧾 Alerts */
+.alert {
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.alert.error {
+    background: #ffe5e5;
+    color: #b30000;
+}
+
+.alert.success {
+    background: #e5ffe8;
+    color: #007a2d;
+}
+
+/* 🔗 Switch Text (Login ↔ Register) */
+.switch-text {
+    font-size: 14px;
+    margin-top: 20px;
+    color: #555;
+}
+
+.switch-text a {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.switch-text a:hover {
+    text-decoration: underline;
+}
+
+/* 📱 Responsive Design */
+@media (max-width: 480px) {
+    .auth-container {
+        padding: 30px 25px;
+        max-width: 90%;
+    }
+
+    .auth-container h2 {
+        font-size: 20px;
+    }
+}
