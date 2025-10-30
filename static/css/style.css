@@ -89,19 +89,6 @@ body {
 }
 
 /* ===== DROPDOWN MENU ===== */
-.dropdown {
-    position: relative;
-}
-
-.dropbtn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 14px;
-    color: #007bff;
-    padding: 2px 5px;
-}
-
 .dropdown-content {
     display: none;
     position: absolute;
@@ -127,7 +114,7 @@ body {
     color: #007bff;
 }
 
-.dropdown:hover .dropdown-content {
+.show {
     display: block;
 }
 
@@ -177,33 +164,27 @@ body {
     border-radius: 10px;
 }
 
-/* ===== CASES SECTION ===== */
+/* ===== CASES ===== */
 .cases-section {
-    margin-top: 2rem;
+    margin-top: 1rem;
 }
 
 .cases-section h2 {
-    margin-bottom: 1rem;
     color: #333;
-}
-
-.case-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1rem;
+    margin-bottom: 1rem;
 }
 
 .card {
     background: white;
     border-radius: 12px;
     padding: 20px;
+    margin-bottom: 1rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .card-header h3 {
-    margin: 0;
     color: #007bff;
-    font-weight: 600;
+    margin-bottom: 8px;
 }
 
 .card-body p {
@@ -212,91 +193,99 @@ body {
     color: #444;
 }
 
-.no-cases {
-    text-align: center;
-    color: #888;
-    background: #fff;
-    border-radius: 10px;
-    padding: 25px;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
-}
-
-/* ===== SETTINGS SECTION ===== */
-.settings-section {
-    background: #fff;
-    border-radius: 15px;
-    padding: 30px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    max-width: 600px;
-}
-
+/* ===== SETTINGS (Improved) ===== */
 .settings-section h2 {
-    margin-bottom: 20px;
-    color: #007bff;
-}
-
-.profile-info p {
-    font-size: 15px;
     color: #333;
-    margin: 10px 0;
+    margin-bottom: 1.5rem;
 }
 
-.edit-profile-form {
+.settings-form {
+    background: #fff;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+    max-width: 500px;
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    margin-top: 10px;
+    gap: 10px;
 }
 
-.edit-profile-form label {
+.settings-form p {
+    margin: 6px 0;
+    font-size: 15px;
+    color: #444;
+}
+
+.settings-form label {
+    display: block;
+    margin-top: 10px;
     font-weight: 500;
     color: #333;
 }
 
-.edit-profile-form input {
+.settings-form input {
+    width: 100%;
     padding: 10px 12px;
+    margin-top: 5px;
     border: 1px solid #ccc;
     border-radius: 8px;
     font-size: 15px;
-    transition: border 0.2s ease;
-}
-
-.edit-profile-form input:focus {
-    border-color: #007bff;
     outline: none;
+    transition: border-color 0.2s;
 }
 
-/* ===== BUTTONS ===== */
+.settings-form input:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.2);
+}
+
+.profile-view p strong {
+    color: #007bff;
+}
+
+/* Buttons */
 .settings-buttons {
     display: flex;
     gap: 10px;
     margin-top: 15px;
 }
 
-.settings-buttons button {
-    background: #007bff;
-    border: none;
-    color: #fff;
+.btn {
     padding: 10px 18px;
+    border: none;
     border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 15px;
     cursor: pointer;
-    transition: background 0.3s ease;
+    transition: all 0.3s ease;
 }
 
-.settings-buttons button:hover {
-    background: #005fcc;
+.edit-btn {
+    background-color: #007bff;
+    color: white;
 }
 
-.settings-buttons .cancel-btn {
-    background: #ccc;
-    color: #222;
+.save-btn {
+    background-color: #28a745;
+    color: white;
 }
 
-.settings-buttons .cancel-btn:hover {
-    background: #aaa;
+.cancel-btn {
+    background-color: #dc3545;
+    color: white;
 }
+
+.btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+/* Success / Error message */
+.update-message {
+    margin-top: 10px;
+    font-weight: 500;
+    text-align: center;
+}
+
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 900px) {
@@ -306,31 +295,11 @@ body {
 
     .sidebar {
         flex-direction: row;
-        align-items: center;
         justify-content: space-around;
         width: 100%;
-        padding: 15px;
-    }
-
-    .main-content {
-        padding: 20px;
     }
 
     #stats {
         flex-direction: column;
     }
-
-    .stat-box {
-        flex: 1 1 100%;
-    }
-
-    .settings-section {
-        max-width: 100%;
-    }
-}
-
-.update-message {
-    margin-top: 10px;
-    font-size: 14px;
-    font-weight: 500;
 }

@@ -1,36 +1,55 @@
 document.addEventListener("DOMContentLoaded", () => {
-    // Sidebar navigation
+    // ===== Dropdown Toggle =====
+    const dropBtn = document.querySelector(".dropbtn");
+    const dropdownMenu = document.getElementById("dropdownMenu");
+
+    if (dropBtn) {
+        dropBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            dropdownMenu.classList.toggle("show");
+        });
+    }
+
+    window.addEventListener("click", () => {
+        dropdownMenu.classList.remove("show");
+    });
+
+    // ===== Sidebar Tabs (Single Page Navigation) =====
     const navLinks = document.querySelectorAll(".sidebar nav a");
-    const sections = {
-        dashboard: [document.getElementById("stats"), document.querySelector(".map-container")],
-        cases: [document.getElementById("cases")],
-        settings: [document.getElementById("settings")]
-    };
+    const sections = document.querySelectorAll(".tab-section");
 
     navLinks.forEach(link => {
-        link.addEventListener("click", e => {
+        link.addEventListener("click", (e) => {
             e.preventDefault();
-            navLinks.forEach(n => n.classList.remove("active"));
+            const targetId = link.getAttribute("href").substring(1);
+
+            navLinks.forEach(l => l.classList.remove("active"));
             link.classList.add("active");
 
-            Object.values(sections).flat().forEach(sec => sec && (sec.style.display = "none"));
-            const target = link.getAttribute("href").replace("#", "");
-            (sections[target] || []).forEach(sec => sec && (sec.style.display = "block"));
+            sections.forEach(section => {
+                section.style.display = (section.id === targetId) ? "block" : "none";
+            });
         });
     });
 
-    // Leaflet Map
+    // ===== Leaflet Map =====
     if (typeof incidentsData !== "undefined" && incidentsData.length > 0) {
         const map = L.map("map").setView([14.4663, 75.9219], 12);
+
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
             maxZoom: 19,
             attribution: "© OpenStreetMap contributors"
         }).addTo(map);
 
         incidentsData.forEach(incident => {
-            if (incident.latitude && incident.longitude) {
-                const marker = L.marker([incident.latitude, incident.longitude]).addTo(map);
-                marker.bindPopup(`<b>${incident.title}</b><br>${incident.location}`);
+            if (incident.lat && incident.lng) {
+                const marker = L.marker([incident.lat, incident.lng]).addTo(map);
+                marker.bindPopup(`
+                    <b>${incident.user_email}</b><br>
+                    📍 Lat: ${incident.lat}, Lng: ${incident.lng}<br>
+                    ⚡ Accel: ${incident.accel_mag.toFixed(2)}<br>
+                    🚀 Speed: ${incident.speed}
+                `);
             }
         });
     }
@@ -66,7 +85,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     body: formData
                 });
                 const data = await response.json();
-
                 updateMessage.style.display = "block";
                 updateMessage.textContent = data.message;
                 updateMessage.style.color = data.success ? "green" : "red";

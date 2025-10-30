@@ -33,14 +33,19 @@ def dashboard():
         return redirect(url_for("logout"))
 
     try:
+        # Fetch incidents from MongoDB
         incidents = list(incidents_collection.find())
         for inc in incidents:
             inc["_id"] = str(inc["_id"])
-            inc["latitude"] = inc.get("latitude", 14.4663)
-            inc["longitude"] = inc.get("longitude", 75.9219)
+            inc["lat"] = inc.get("lat", 14.4663)
+            inc["lng"] = inc.get("lng", 75.9219)
+            inc["user_email"] = inc.get("user_email", "Unknown")
+            inc["speed"] = inc.get("speed", 0)
+            inc["accel_mag"] = inc.get("accel_mag", 0)
+            inc["created_at"] = inc.get("metadata", {}).get("created_at", "N/A")
 
-        active_cases = sum(1 for inc in incidents if inc.get("status") == "active")
-        resolved_cases = sum(1 for inc in incidents if inc.get("status") == "resolved")
+        active_cases = len(incidents)   # Assuming all fetched = active
+        resolved_cases = 0  # If you have a "status" field, you can count based on it
 
     except Exception as e:
         print("❌ Error fetching incidents:", e)
@@ -54,6 +59,7 @@ def dashboard():
         hospital_name=session.get("hospital_name", "Unknown Hospital"),
         user=user
     )
+
 
 
 # -----------------------------

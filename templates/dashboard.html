@@ -5,12 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hospital Dashboard | SwiftAid</title>
 
-    <!-- Styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
-    <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <script>
         const incidentsData = {{ incidents|tojson }};
     </script>
@@ -34,8 +32,6 @@
 
     <!-- Main Content -->
     <main class="main-content">
-
-        <!-- Header -->
         <header class="main-header">
             <h2>Incident Dashboard</h2>
 
@@ -51,63 +47,66 @@
             </div>
         </header>
 
-        <!-- DASHBOARD SECTION -->
-        <section id="stats">
-            <div class="stat-box">
-                <span>{{ active_cases }}</span>
-                <p>Active Cases</p>
-            </div>
-            <div class="stat-box">
-                <span>{{ resolved_cases }}</span>
-                <p>Resolved Cases</p>
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="tab-section">
+            <section id="stats">
+                <div class="stat-box">
+                    <span>{{ active_cases }}</span>
+                    <p>Active Cases</p>
+                </div>
+                <div class="stat-box">
+                    <span>{{ resolved_cases }}</span>
+                    <p>Resolved Cases</p>
+                </div>
+            </section>
+
+            <div class="map-container">
+                <div id="map" class="map-placeholder"></div>
             </div>
         </section>
 
-        <div class="map-container">
-            <div id="map" class="map-placeholder"></div>
-        </div>
-
-        <!-- CASES SECTION -->
-        <section id="cases" class="cases-section" style="display: none;">
+        <!-- Cases Section -->
+        <section id="cases" class="cases-section tab-section" style="display: none;">
             <h2>🚑 Reported Cases</h2>
 
             {% if incidents %}
                 {% for inc in incidents %}
                 <div class="card">
                     <div class="card-header">
-                        <h3>{{ inc.title }}</h3>
+                        <h3>📍 {{ inc.user_email }}</h3>
                     </div>
                     <div class="card-body">
-                        <p><strong>Status:</strong> {{ inc.status }}</p>
-                        <p><strong>Location:</strong> {{ inc.location }}</p>
-                        <p><strong>Description:</strong> {{ inc.description }}</p>
+                        <p><strong>Latitude:</strong> {{ inc.lat }}</p>
+                        <p><strong>Longitude:</strong> {{ inc.lng }}</p>
+                        <p><strong>Acceleration Magnitude:</strong> {{ "%.2f"|format(inc.accel_mag) }}</p>
+                        <p><strong>Speed:</strong> {{ inc.speed }}</p>
+                        <p><strong>Reported At:</strong> {{ inc.created_at }}</p>
                     </div>
                 </div>
                 {% endfor %}
             {% else %}
-                <div class="no-cases">No active or resolved cases yet.</div>
+                <div class="no-cases">No incident cases reported yet.</div>
             {% endif %}
         </section>
 
-        <!-- SETTINGS SECTION -->
-        <!-- SETTINGS SECTION -->
-<section id="settings" class="settings-section" style="display: none;">
+ <!-- Settings Section -->
+<section id="settings" class="settings-section tab-section" style="display: none;">
     <h2>⚙️ Settings</h2>
 
     <!-- View Mode -->
-    <div id="profileView" class="profile-info">
+    <div id="profileView" class="settings-form profile-view">
         <p><strong>Hospital Name:</strong> {{ user.hospital_name }}</p>
         <p><strong>Email:</strong> {{ user.email }}</p>
         <p><strong>Phone:</strong> {{ user.get('phone', 'Not provided') }}</p>
         <p><strong>Location:</strong> {{ user.get('location', 'Not provided') }}</p>
 
         <div class="settings-buttons">
-            <button id="editProfileBtn">✏️ Edit Profile</button>
+            <button id="editProfileBtn" class="btn edit-btn">✏️ Edit Profile</button>
         </div>
     </div>
 
     <!-- Edit Mode -->
-    <form id="editProfileForm" class="edit-profile-form" style="display: none;">
+    <form id="editProfileForm" class="settings-form edit-profile-form" style="display: none;">
         <label for="hospital_name">Hospital Name</label>
         <input type="text" id="hospital_name" name="hospital_name" value="{{ user.hospital_name }}" required>
 
@@ -118,14 +117,13 @@
         <input type="text" id="location" name="location" value="{{ user.get('location', '') }}">
 
         <div class="settings-buttons">
-            <button type="submit">💾 Save Changes</button>
-            <button type="button" class="cancel-btn" id="cancelEditBtn">Cancel</button>
+            <button type="submit" class="btn save-btn">💾 Save Changes</button>
+            <button type="button" class="btn cancel-btn" id="cancelEditBtn">Cancel</button>
         </div>
     </form>
 
     <p id="updateMessage" class="update-message" style="display:none;"></p>
 </section>
-
 
     </main>
 </body>
