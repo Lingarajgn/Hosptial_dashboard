@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
         dropdownMenu.classList.remove("show");
     });
 
-    // ===== Sidebar Tabs (Single Page Navigation) =====
+    // ===== Sidebar Tabs =====
     const navLinks = document.querySelectorAll(".sidebar nav a");
     const sections = document.querySelectorAll(".tab-section");
 
@@ -54,7 +54,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Settings - Toggle Edit Mode
+    // ===== Profile Editing =====
     const editBtn = document.getElementById("editProfileBtn");
     const cancelBtn = document.getElementById("cancelEditBtn");
     const profileView = document.getElementById("profileView");
@@ -73,7 +73,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // AJAX Profile Save
     if (editForm) {
         editForm.addEventListener("submit", async (e) => {
             e.preventDefault();
@@ -93,7 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     setTimeout(() => {
                         editForm.style.display = "none";
                         profileView.style.display = "block";
-                        window.location.reload(); // Refresh data
+                        window.location.reload();
                     }, 1000);
                 }
             } catch (error) {
@@ -105,3 +104,34 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 });
+
+// ===== Accept / Reject Case =====
+async function updateCaseStatus(incidentId, status) {
+    try {
+        const response = await fetch("/update_case_status", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ incident_id: incidentId, status })
+        });
+
+        const result = await response.json();
+        const statusElement = document.getElementById(`status-${incidentId}`);
+
+        if (result.success) {
+            statusElement.textContent = `Case ${status.toUpperCase()}`;
+            statusElement.style.color = status === "accepted" ? "green" : "red";
+
+            if (status === "accepted") {
+                const acceptedCases = document.getElementById("acceptedCases");
+                acceptedCases.textContent = parseInt(acceptedCases.textContent) + 1;
+            }
+
+            document.querySelector(`#case-${incidentId} .accept-btn`).disabled = true;
+            document.querySelector(`#case-${incidentId} .reject-btn`).disabled = true;
+        } else {
+            alert(result.message);
+        }
+    } catch (err) {
+        console.error("Error updating case status:", err);
+    }
+}

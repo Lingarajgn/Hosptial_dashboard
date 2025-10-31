@@ -55,8 +55,8 @@
                     <p>Active Cases</p>
                 </div>
                 <div class="stat-box">
-                    <span>{{ resolved_cases }}</span>
-                    <p>Resolved Cases</p>
+                    <span id="acceptedCases">{{ accepted_cases }}</span>
+                    <p>Accepted Cases</p>
                 </div>
             </section>
 
@@ -71,7 +71,7 @@
 
             {% if incidents %}
                 {% for inc in incidents %}
-                <div class="card">
+                <div class="card" id="case-{{ inc._id }}">
                     <div class="card-header">
                         <h3>📍 {{ inc.user_email }}</h3>
                     </div>
@@ -81,6 +81,11 @@
                         <p><strong>Acceleration Magnitude:</strong> {{ "%.2f"|format(inc.accel_mag) }}</p>
                         <p><strong>Speed:</strong> {{ inc.speed }}</p>
                         <p><strong>Reported At:</strong> {{ inc.created_at }}</p>
+                        <div class="case-actions">
+                            <button class="btn accept-btn" onclick="updateCaseStatus('{{ inc._id }}', 'accepted')">✅ Accept Case</button>
+                            <button class="btn reject-btn" onclick="updateCaseStatus('{{ inc._id }}', 'rejected')">❌ Reject Case</button>
+                        </div>
+                        <p class="case-status" id="status-{{ inc._id }}"></p>
                     </div>
                 </div>
                 {% endfor %}
@@ -89,42 +94,39 @@
             {% endif %}
         </section>
 
- <!-- Settings Section -->
-<section id="settings" class="settings-section tab-section" style="display: none;">
-    <h2>⚙️ Settings</h2>
+        <!-- Settings Section -->
+        <section id="settings" class="settings-section tab-section" style="display: none;">
+            <h2>⚙️ Settings</h2>
 
-    <!-- View Mode -->
-    <div id="profileView" class="settings-form profile-view">
-        <p><strong>Hospital Name:</strong> {{ user.hospital_name }}</p>
-        <p><strong>Email:</strong> {{ user.email }}</p>
-        <p><strong>Phone:</strong> {{ user.get('phone', 'Not provided') }}</p>
-        <p><strong>Location:</strong> {{ user.get('location', 'Not provided') }}</p>
+            <div id="profileView" class="settings-form profile-view">
+                <p><strong>Hospital Name:</strong> {{ user.hospital_name }}</p>
+                <p><strong>Email:</strong> {{ user.email }}</p>
+                <p><strong>Phone:</strong> {{ user.get('phone', 'Not provided') }}</p>
+                <p><strong>Location:</strong> {{ user.get('location', 'Not provided') }}</p>
 
-        <div class="settings-buttons">
-            <button id="editProfileBtn" class="btn edit-btn">✏️ Edit Profile</button>
-        </div>
-    </div>
+                <div class="settings-buttons">
+                    <button id="editProfileBtn" class="btn edit-btn">✏️ Edit Profile</button>
+                </div>
+            </div>
 
-    <!-- Edit Mode -->
-    <form id="editProfileForm" class="settings-form edit-profile-form" style="display: none;">
-        <label for="hospital_name">Hospital Name</label>
-        <input type="text" id="hospital_name" name="hospital_name" value="{{ user.hospital_name }}" required>
+            <form id="editProfileForm" class="settings-form edit-profile-form" style="display: none;">
+                <label for="hospital_name">Hospital Name</label>
+                <input type="text" id="hospital_name" name="hospital_name" value="{{ user.hospital_name }}" required>
 
-        <label for="phone">Phone</label>
-        <input type="text" id="phone" name="phone" value="{{ user.get('phone', '') }}">
+                <label for="phone">Phone</label>
+                <input type="text" id="phone" name="phone" value="{{ user.get('phone', '') }}">
 
-        <label for="location">Location</label>
-        <input type="text" id="location" name="location" value="{{ user.get('location', '') }}">
+                <label for="location">Location</label>
+                <input type="text" id="location" name="location" value="{{ user.get('location', '') }}">
 
-        <div class="settings-buttons">
-            <button type="submit" class="btn save-btn">💾 Save Changes</button>
-            <button type="button" class="btn cancel-btn" id="cancelEditBtn">Cancel</button>
-        </div>
-    </form>
+                <div class="settings-buttons">
+                    <button type="submit" class="btn save-btn">💾 Save Changes</button>
+                    <button type="button" class="btn cancel-btn" id="cancelEditBtn">Cancel</button>
+                </div>
+            </form>
 
-    <p id="updateMessage" class="update-message" style="display:none;"></p>
-</section>
-
+            <p id="updateMessage" class="update-message" style="display:none;"></p>
+        </section>
     </main>
 </body>
 </html>

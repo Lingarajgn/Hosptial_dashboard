@@ -15,10 +15,10 @@ try:
     db = client['SwiftAid']
     hospital_users = db['hospital_user']
     incidents_collection = db['incidents']
+    case_status_collection = db['case_status']
     print("✅ Connected to MongoDB successfully")
 except Exception as e:
     print("❌ MongoDB Connection Failed:", e)
-
 
 # -----------------------------
 # DASHBOARD
@@ -33,7 +33,6 @@ def dashboard():
         return redirect(url_for("logout"))
 
     try:
-        # Fetch incidents from MongoDB
         incidents = list(incidents_collection.find())
         for inc in incidents:
             inc["_id"] = str(inc["_id"])
@@ -44,21 +43,51 @@ def dashboard():
             inc["accel_mag"] = inc.get("accel_mag", 0)
             inc["created_at"] = inc.get("metadata", {}).get("created_at", "N/A")
 
-        active_cases = len(incidents)   # Assuming all fetched = active
-        resolved_cases = 0  # If you have a "status" field, you can count based on it
-
+        active_cases = len(incidents)
+        accepted_cases = case_status_collection.count_documents({"status": "accepted"})
     except Exception as e:
         print("❌ Error fetching incidents:", e)
-        incidents, active_cases, resolved_cases = [], 0, 0
+        incidents, active_cases, accepted_cases = [], 0, 0
 
     return render_template(
         "dashboard.html",
         active_cases=active_cases,
-        resolved_cases=resolved_cases,
+        accepted_cases=accepted_cases,
         incidents=incidents,
         hospital_name=session.get("hospital_name", "Unknown Hospital"),
         user=user
     )
+
+
+# -----------------------------
+# UPDATE CASE STATUS
+# -----------------------------
+@app.route("/update_case_status", methods=["POST"])
+def update_case_status():
+    if "email" not in session:
+        return jsonify({"success": False, "message": "Not logged in"}), 403
+
+    data = request.get_json()
+    incident_id = data.get("incident_id")
+    status = data.get("status")
+
+    if not incident_id or not status:
+        return jsonify({"success": False, "message": "Invalid data"}), 400
+
+    hospital_name = session.get("hospital_name")
+
+    # Check if case is already accepted
+    existing = case_status_collection.find_one({"incident_id": incident_id, "status": "accepted"})
+    if existing and status == "accepted":
+        return jsonify({"success": False, "message": "Case already accepted by another hospital"}), 409
+
+    case_status_collection.update_one(
+        {"incident_id": incident_id},
+        {"$set": {"status": status, "hospital_name": hospital_name if status == "accepted" else None}},
+        upsert=True
+    )
+
+    return jsonify({"success": True, "message": f"Case {status} successfully"})
 
 
 
