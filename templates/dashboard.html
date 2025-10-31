@@ -82,6 +82,9 @@
                         <p><strong>Speed:</strong> {{ inc.speed }}</p>
                         <p><strong>Reported At:</strong> {{ inc.created_at }}</p>
 
+                        <a href="{{ url_for('case_detail', incident_id=inc._id) }}" class="btn view-btn">🔍 View Details</a>
+
+
                         {% if inc.status_info %}
                             {% if inc.status_info.status == 'accepted' %}
                                 {% if inc.status_info.hospital_name == hospital_name %}

@@ -130,6 +130,51 @@ def update_case_status():
 
     return jsonify({"success": True, "message": f"Case {status} successfully"})
 
+# -----------------------------
+# /case/<incident_id>
+# -----------------------------
+from bson import ObjectId
+
+@app.route("/case/<incident_id>")
+def case_detail(incident_id):
+    if "email" not in session:
+        return redirect(url_for("login"))
+
+    hospital_name = session.get("hospital_name")
+
+    try:
+        # Find the incident by its ObjectId
+        incident = incidents_collection.find_one({"_id": ObjectId(incident_id)})
+        if not incident:
+            return "Case not found", 404
+
+        # Convert ObjectId to string
+        incident["_id"] = str(incident["_id"])
+        incident["lat"] = incident.get("lat", 14.4663)
+        incident["lng"] = incident.get("lng", 75.9219)
+        incident["user_email"] = incident.get("user_email", "Unknown")
+        incident["speed"] = incident.get("speed", 0)
+        incident["accel_mag"] = incident.get("accel_mag", 0)
+        incident["created_at"] = incident.get("metadata", {}).get("created_at", "N/A")
+
+        # Find case status (accepted/rejected)
+        status = case_status_collection.find_one({"incident_id": str(incident["_id"])})
+        if status:
+            incident["status"] = status["status"]
+            incident["accepted_by"] = status.get("hospital_name")
+        else:
+            incident["status"] = "available"
+            incident["accepted_by"] = None
+
+    except Exception as e:
+        print("❌ Error fetching case detail:", e)
+        return "Error loading case details", 500
+
+    return render_template(
+        "case_detail.html",
+        incident=incident,
+        hospital_name=hospital_name
+    )
 
 
 # -----------------------------

@@ -339,4 +339,18 @@ body {
     color: red;
     font-weight: 600;
 }
+.view-btn {
+    background-color: #17a2b8;
+    color: white;
+    text-decoration: none;
+    display: inline-block;
+    margin-top: 8px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    transition: background 0.3s ease;
+}
+
+.view-btn:hover {
+    background-color: #138496;
+}
 
