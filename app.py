@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from pymongo import MongoClient
+from bson import ObjectId
 from werkzeug.security import generate_password_hash, check_password_hash
 from config import MONGO_URI
 import re
@@ -32,8 +33,14 @@ def dashboard():
     if not user:
         return redirect(url_for("logout"))
 
+    hospital_name = session.get("hospital_name")
+
     try:
+        # 🟢 1️⃣ Fetch data from MongoDB
         incidents = list(incidents_collection.find())
+        all_statuses = list(case_status_collection.find())
+
+        # 🟢 2️⃣ Convert ObjectIds to strings (ADD THIS PART HERE)
         for inc in incidents:
             inc["_id"] = str(inc["_id"])
             inc["lat"] = inc.get("lat", 14.4663)
@@ -43,8 +50,32 @@ def dashboard():
             inc["accel_mag"] = inc.get("accel_mag", 0)
             inc["created_at"] = inc.get("metadata", {}).get("created_at", "N/A")
 
+        for cs in all_statuses:
+            cs["_id"] = str(cs["_id"])
+            if "incident_id" in cs:
+                cs["incident_id"] = str(cs["incident_id"])
+
+        # 🟢 3️⃣ Continue with the rest of your logic
+        accepted_cases_global = {cs["incident_id"]: cs for cs in all_statuses if cs["status"] == "accepted"}
+        rejected_cases_by_hospital = {
+            cs["incident_id"]: cs for cs in all_statuses
+            if cs["status"] == "rejected" and cs.get("hospital_name") == hospital_name
+        }
+
+        for inc in incidents:
+            if inc["_id"] in accepted_cases_global:
+                inc["status_info"] = accepted_cases_global[inc["_id"]]
+            elif inc["_id"] in rejected_cases_by_hospital:
+                inc["status_info"] = {"status": "rejected", "hospital_name": hospital_name}
+            else:
+                inc["status_info"] = None
+
         active_cases = len(incidents)
-        accepted_cases = case_status_collection.count_documents({"status": "accepted"})
+        accepted_cases = case_status_collection.count_documents({
+            "status": "accepted",
+            "hospital_name": hospital_name
+        })
+
     except Exception as e:
         print("❌ Error fetching incidents:", e)
         incidents, active_cases, accepted_cases = [], 0, 0
@@ -54,9 +85,10 @@ def dashboard():
         active_cases=active_cases,
         accepted_cases=accepted_cases,
         incidents=incidents,
-        hospital_name=session.get("hospital_name", "Unknown Hospital"),
+        hospital_name=hospital_name,
         user=user
     )
+
 
 
 # -----------------------------
@@ -70,22 +102,31 @@ def update_case_status():
     data = request.get_json()
     incident_id = data.get("incident_id")
     status = data.get("status")
+    hospital_name = session.get("hospital_name")
 
     if not incident_id or not status:
         return jsonify({"success": False, "message": "Invalid data"}), 400
 
-    hospital_name = session.get("hospital_name")
-
-    # Check if case is already accepted
-    existing = case_status_collection.find_one({"incident_id": incident_id, "status": "accepted"})
-    if existing and status == "accepted":
+    # ✅ CASE ALREADY ACCEPTED BY ANY HOSPITAL
+    existing_accept = case_status_collection.find_one({"incident_id": incident_id, "status": "accepted"})
+    if existing_accept and status == "accepted":
         return jsonify({"success": False, "message": "Case already accepted by another hospital"}), 409
 
-    case_status_collection.update_one(
-        {"incident_id": incident_id},
-        {"$set": {"status": status, "hospital_name": hospital_name if status == "accepted" else None}},
-        upsert=True
-    )
+    if status == "accepted":
+        # ✅ Only one hospital can accept
+        case_status_collection.update_one(
+            {"incident_id": incident_id},
+            {"$set": {"status": "accepted", "hospital_name": hospital_name}},
+            upsert=True
+        )
+
+    elif status == "rejected":
+        # ✅ Each hospital can reject independently
+        case_status_collection.update_one(
+            {"incident_id": incident_id, "hospital_name": hospital_name},
+            {"$set": {"status": "rejected"}},
+            upsert=True
+        )
 
     return jsonify({"success": True, "message": f"Case {status} successfully"})
 

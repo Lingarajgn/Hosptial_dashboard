@@ -323,3 +323,20 @@ body {
     margin-top: 10px;
     font-weight: bold;
 }
+
+/* ===== CASE STATUS COLORS ===== */
+.case-status.accepted {
+    color: green;
+    font-weight: 600;
+}
+
+.case-status.taken {
+    color: #555;
+    font-weight: 500;
+}
+
+.case-status.rejected {
+    color: red;
+    font-weight: 600;
+}
+

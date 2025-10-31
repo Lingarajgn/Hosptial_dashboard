@@ -81,11 +81,24 @@
                         <p><strong>Acceleration Magnitude:</strong> {{ "%.2f"|format(inc.accel_mag) }}</p>
                         <p><strong>Speed:</strong> {{ inc.speed }}</p>
                         <p><strong>Reported At:</strong> {{ inc.created_at }}</p>
-                        <div class="case-actions">
-                            <button class="btn accept-btn" onclick="updateCaseStatus('{{ inc._id }}', 'accepted')">✅ Accept Case</button>
-                            <button class="btn reject-btn" onclick="updateCaseStatus('{{ inc._id }}', 'rejected')">❌ Reject Case</button>
-                        </div>
-                        <p class="case-status" id="status-{{ inc._id }}"></p>
+
+                        {% if inc.status_info %}
+                            {% if inc.status_info.status == 'accepted' %}
+                                {% if inc.status_info.hospital_name == hospital_name %}
+                                    <p class="case-status accepted">✅ Accepted by You</p>
+                                {% else %}
+                                    <p class="case-status taken">🚫 Already accepted by another hospital</p>
+                                {% endif %}
+                            {% elif inc.status_info.status == 'rejected' %}
+                                <p class="case-status rejected">❌ Rejected by a hospital</p>
+                            {% endif %}
+                        {% else %}
+                            <div class="case-actions">
+                                <button class="btn accept-btn" onclick="updateCaseStatus('{{ inc._id }}', 'accepted')">✅ Accept Case</button>
+                                <button class="btn reject-btn" onclick="updateCaseStatus('{{ inc._id }}', 'rejected')">❌ Reject Case</button>
+                            </div>
+                            <p class="case-status" id="status-{{ inc._id }}"></p>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}
