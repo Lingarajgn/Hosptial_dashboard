@@ -193,7 +193,7 @@ body {
     color: #444;
 }
 
-/* ===== SETTINGS (Improved) ===== */
+/* ===== SETTINGS ===== */
 .settings-section h2 {
     color: #333;
     margin-bottom: 1.5rem;
@@ -279,30 +279,33 @@ body {
     transform: translateY(-1px);
 }
 
-/* Success / Error message */
-.update-message {
-    margin-top: 10px;
+/* ===== STATUS COLORS ===== */
+.status-available {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.status-onduty {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+/* ===== TOGGLE STATUS BUTTON ===== */
+.toggle-status-btn {
+    background: #007bff;
+    color: #fff;
     font-weight: 500;
-    text-align: center;
+    padding: 8px 15px;
+    border-radius: 6px;
+    margin-top: 10px;
+    width: fit-content;
 }
 
-
-/* ===== RESPONSIVE ===== */
-@media (max-width: 900px) {
-    body {
-        flex-direction: column;
-    }
-
-    .sidebar {
-        flex-direction: row;
-        justify-content: space-around;
-        width: 100%;
-    }
-
-    #stats {
-        flex-direction: column;
-    }
+.toggle-status-btn:hover {
+    background: #0056b3;
 }
+
+/* ===== CASE ACTIONS ===== */
 .case-actions {
     display: flex;
     gap: 10px;
@@ -324,21 +327,18 @@ body {
     font-weight: bold;
 }
 
-/* ===== CASE STATUS COLORS ===== */
 .case-status.accepted {
     color: green;
-    font-weight: 600;
 }
 
 .case-status.taken {
     color: #555;
-    font-weight: 500;
 }
 
 .case-status.rejected {
     color: red;
-    font-weight: 600;
 }
+
 .view-btn {
     background-color: #17a2b8;
     color: white;
@@ -354,3 +354,136 @@ body {
     background-color: #138496;
 }
 
+/* ===== AMBULANCE SECTION ===== */
+.ambulance-actions {
+    margin-bottom: 15px;
+}
+
+.ambulance-form {
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 400px;
+}
+
+.ambulance-form input {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+}
+
+.ambulance-list .card {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* ===== ASSIGN AMBULANCE POPUP ===== */
+#assignAmbulancePopup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 999;
+}
+
+#assignAmbulancePopup .popup-content {
+  background: #ffffff;
+  width: 420px;
+  max-height: 80vh;
+  overflow-y: auto;
+  border-radius: 16px;
+  padding: 25px 30px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+#assignAmbulancePopup h3 {
+  text-align: center;
+  font-size: 22px;
+  margin: 0 0 10px 0;
+  color: #007bff;
+  font-weight: 600;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 10px;
+}
+
+.ambulance-option {
+  background: #f9f9ff;
+  border: 1px solid #e1e5f2;
+  border-radius: 10px;
+  padding: 12px 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease-in-out;
+}
+
+.ambulance-option:hover {
+  background: #eef6ff;
+  border-color: #007bff;
+}
+
+.assign-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.assign-btn:hover {
+  background: #218838;
+}
+
+#assignAmbulancePopup .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+#assignAmbulancePopup .btn.secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+#assignAmbulancePopup .btn.secondary:hover {
+  background-color: #5a6268;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+    body { flex-direction: column; }
+    .sidebar { flex-direction: row; justify-content: space-around; width: 100%; }
+    #stats { flex-direction: column; }
+}
+
+@media (max-width: 600px) {
+  #assignAmbulancePopup .popup-content {
+    width: 90%;
+    padding: 20px;
+  }
+}

@@ -3,6 +3,7 @@ from pymongo import MongoClient
 from bson import ObjectId
 from werkzeug.security import generate_password_hash, check_password_hash
 from config import MONGO_URI
+from datetime import datetime
 import re
 
 app = Flask(__name__)
@@ -17,6 +18,7 @@ try:
     hospital_users = db['hospital_user']
     incidents_collection = db['incidents']
     case_status_collection = db['case_status']
+    ambulances_collection = db['ambulances']
     print("✅ Connected to MongoDB successfully")
 except Exception as e:
     print("❌ MongoDB Connection Failed:", e)
@@ -175,6 +177,120 @@ def case_detail(incident_id):
         incident=incident,
         hospital_name=hospital_name
     )
+# -----------------------------
+# 🚑 AMBULANCE MANAGEMENT
+# -----------------------------
+@app.route("/ambulances", methods=["GET"])
+def get_ambulances():
+    """Fetch all ambulances belonging to the logged-in hospital."""
+    if "email" not in session:
+        return jsonify({"success": False, "message": "Not logged in"}), 403
+
+    hospital_name = session.get("hospital_name")
+    ambs = list(ambulances_collection.find({"hospital_name": hospital_name}))
+
+    for a in ambs:
+        a["_id"] = str(a["_id"])
+
+    return jsonify({"success": True, "ambulances": ambs})
+
+
+@app.route("/add_ambulance", methods=["POST"])
+def add_ambulance():
+    """Add a new ambulance record."""
+    if "email" not in session:
+        return jsonify({"success": False, "message": "Not logged in"}), 403
+
+    data = request.get_json()
+    vehicle_number = data.get("vehicle_number")
+    driver_name = data.get("driver_name")
+    phone = data.get("phone")
+    hospital_name = session.get("hospital_name")
+
+    if not vehicle_number or not driver_name:
+        return jsonify({"success": False, "message": "Missing required fields"}), 400
+
+    ambulances_collection.insert_one({
+        "vehicle_number": vehicle_number,
+        "driver_name": driver_name,
+        "phone": phone,
+        "status": "available",
+        "hospital_name": hospital_name
+    })
+    return jsonify({"success": True, "message": "Ambulance added successfully"})
+
+
+@app.route("/update_ambulance_status", methods=["POST"])
+def update_ambulance_status():
+    """Manually toggle ambulance status between available / on-duty."""
+    if "email" not in session:
+        return jsonify({"success": False, "message": "Not logged in"}), 403
+
+    data = request.get_json()
+    amb_id = data.get("ambulance_id")
+    new_status = data.get("status")
+
+    if not amb_id or not new_status:
+        return jsonify({"success": False, "message": "Invalid data"}), 400
+
+    try:
+        ambulances_collection.update_one(
+            {"_id": ObjectId(amb_id)},
+            {"$set": {"status": new_status}}
+        )
+        return jsonify({"success": True, "message": f"Ambulance marked as {new_status}"})
+    except Exception as e:
+        print("❌ Ambulance status update error:", e)
+        return jsonify({"success": False, "message": "Error updating status"}), 500
+
+
+# -----------------------------
+# ASSIGN AMBULANCE TO A CASE
+# -----------------------------
+@app.route("/assign_ambulance", methods=["POST"])
+def assign_ambulance():
+    if "email" not in session:
+        return jsonify({"success": False, "message": "Not logged in"}), 403
+
+    data = request.get_json()
+    incident_id = data.get("incident_id")
+    ambulance_id = data.get("ambulance_id")
+    hospital_name = session.get("hospital_name")
+
+    if not incident_id or not ambulance_id:
+        return jsonify({"success": False, "message": "Missing incident_id or ambulance_id"}), 400
+
+    try:
+        # 1) Check whether the incident is already accepted by any hospital
+        existing_accept = case_status_collection.find_one({"incident_id": incident_id, "status": "accepted"})
+        if existing_accept:
+            return jsonify({"success": False, "message": "Case already accepted by another hospital"}), 409
+
+        # 2) Mark the case as accepted and save ambulance info (store ambulance id as string)
+        case_status_collection.update_one(
+            {"incident_id": incident_id},
+            {"$set": {
+                "status": "accepted",
+                "hospital_name": hospital_name,
+                "ambulance_id": ambulance_id,
+                "assigned_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+            }},
+            upsert=True
+        )
+
+        # 3) Mark ambulance as on-duty
+        ambulances_collection.update_one(
+            {"_id": ObjectId(ambulance_id)},
+            {"$set": {"status": "on-duty"}}
+        )
+
+        return jsonify({"success": True, "message": "Ambulance assigned and case accepted successfully!"})
+    except Exception as e:
+        print("❌ assign_ambulance error:", e)
+        return jsonify({"success": False, "message": "Server error while assigning ambulance"}), 500
+
+
+
 
 
 # -----------------------------

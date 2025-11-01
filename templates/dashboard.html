@@ -26,6 +26,7 @@
         <nav>
             <a href="#dashboard" class="active">🏠 Dashboard</a>
             <a href="#cases">🚑 Cases</a>
+            <a href="#ambulances">🚐 Ambulances</a>
             <a href="#settings">⚙️ Settings</a>
         </nav>
     </aside>
@@ -84,7 +85,6 @@
 
                         <a href="{{ url_for('case_detail', incident_id=inc._id) }}" class="btn view-btn">🔍 View Details</a>
 
-
                         {% if inc.status_info %}
                             {% if inc.status_info.status == 'accepted' %}
                                 {% if inc.status_info.hospital_name == hospital_name %}
@@ -108,6 +108,27 @@
             {% else %}
                 <div class="no-cases">No incident cases reported yet.</div>
             {% endif %}
+        </section>
+
+        <!-- Ambulances Section -->
+        <section id="ambulances" class="tab-section" style="display: none;">
+            <h2>🚐 Ambulance Management</h2>
+
+            <div class="ambulance-actions">
+                <button class="btn add-ambulance-btn" id="addAmbulanceBtn">➕ Add Ambulance</button>
+            </div>
+
+            <form id="addAmbulanceForm" class="ambulance-form" style="display: none;">
+                <input type="text" id="vehicle_number" placeholder="Vehicle Number" required>
+                <input type="text" id="driver_name" placeholder="Driver Name" required>
+                <input type="text" id="phone" placeholder="Driver Phone" required>
+                <button type="submit" class="btn save-btn">Save Ambulance</button>
+                <button type="button" class="btn cancel-btn" id="cancelAmbulanceBtn">Cancel</button>
+            </form>
+
+            <div id="ambulanceList" class="ambulance-list">
+                <!-- 🚐 Loaded dynamically from JS -->
+            </div>
         </section>
 
         <!-- Settings Section -->
@@ -144,5 +165,18 @@
             <p id="updateMessage" class="update-message" style="display:none;"></p>
         </section>
     </main>
+
+    <!-- 🚑 Ambulance Assignment Popup -->
+    <div id="assignAmbulancePopup" class="popup-form" style="display: none;">
+        <div class="popup-content">
+            <h3>Assign Ambulance</h3>
+            <div id="ambulanceOptions">
+                <p>Loading available ambulances...</p>
+            </div>
+            <div class="form-actions">
+                <button class="btn secondary" onclick="closeAssignPopup()">Cancel</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

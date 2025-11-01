@@ -1,3 +1,6 @@
+// ==============================
+// SwiftAid Dashboard Script
+// ==============================
 document.addEventListener("DOMContentLoaded", () => {
     // ===== Dropdown Toggle =====
     const dropBtn = document.querySelector(".dropbtn");
@@ -9,10 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
             dropdownMenu.classList.toggle("show");
         });
     }
-
-    window.addEventListener("click", () => {
-        dropdownMenu.classList.remove("show");
-    });
+    window.addEventListener("click", () => dropdownMenu.classList.remove("show"));
 
     // ===== Sidebar Tabs =====
     const navLinks = document.querySelectorAll(".sidebar nav a");
@@ -22,10 +22,8 @@ document.addEventListener("DOMContentLoaded", () => {
         link.addEventListener("click", (e) => {
             e.preventDefault();
             const targetId = link.getAttribute("href").substring(1);
-
             navLinks.forEach(l => l.classList.remove("active"));
             link.classList.add("active");
-
             sections.forEach(section => {
                 section.style.display = (section.id === targetId) ? "block" : "none";
             });
@@ -35,7 +33,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // ===== Leaflet Map =====
     if (typeof incidentsData !== "undefined" && incidentsData.length > 0) {
         const map = L.map("map").setView([14.4663, 75.9219], 12);
-
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
             maxZoom: 19,
             attribution: "© OpenStreetMap contributors"
@@ -66,7 +63,6 @@ document.addEventListener("DOMContentLoaded", () => {
             profileView.style.display = "none";
             editForm.style.display = "flex";
         });
-
         cancelBtn.addEventListener("click", () => {
             editForm.style.display = "none";
             profileView.style.display = "block";
@@ -103,35 +99,215 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     }
+
+    // ===== Ambulance Management =====
+    const addAmbulanceBtn = document.getElementById("addAmbulanceBtn");
+    const addAmbulanceForm = document.getElementById("addAmbulanceForm");
+    const cancelAmbulanceBtn = document.getElementById("cancelAmbulanceBtn");
+    const ambulanceList = document.getElementById("ambulanceList");
+
+    if (addAmbulanceBtn) {
+        addAmbulanceBtn.addEventListener("click", () => {
+            addAmbulanceForm.style.display = "flex";
+        });
+    }
+
+    if (cancelAmbulanceBtn) {
+        cancelAmbulanceBtn.addEventListener("click", () => {
+            addAmbulanceForm.style.display = "none";
+        });
+    }
+
+    if (addAmbulanceForm) {
+        addAmbulanceForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const vehicle_number = document.getElementById("vehicle_number").value;
+            const driver_name = document.getElementById("driver_name").value;
+            const phone = document.getElementById("phone").value;
+
+            const response = await fetch("/add_ambulance", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ vehicle_number, driver_name, phone })
+            });
+
+            const data = await response.json();
+            alert(data.message);
+            if (data.success) {
+                addAmbulanceForm.reset();
+                addAmbulanceForm.style.display = "none";
+                loadAmbulances();
+            }
+        });
+    }
+
+    // ===== Load Ambulances =====
+    async function loadAmbulances() {
+        const res = await fetch("/ambulances");
+        const data = await res.json();
+        ambulanceList.innerHTML = "";
+
+        if (data.success && data.ambulances.length > 0) {
+            data.ambulances.forEach(amb => {
+                const toggleText = amb.status === "available" ? "Mark On-Duty" : "Mark Available";
+                const toggleColor = amb.status === "available" ? "#ffc107" : "#28a745";
+
+                ambulanceList.innerHTML += `
+                    <div class="card">
+                        <h3>🚐 ${amb.vehicle_number}</h3>
+                        <p><strong>Driver:</strong> ${amb.driver_name}</p>
+                        <p><strong>Phone:</strong> ${amb.phone}</p>
+                        <p><strong>Status:</strong> 
+                            <span style="color:${amb.status === "available" ? "green" : "red"};">
+                                ${amb.status}
+                            </span>
+                        </p>
+                        <button class="btn" 
+                            style="background-color:${toggleColor}; color:white;"
+                            onclick="toggleAmbulanceStatus('${amb._id}', '${amb.status}')">
+                            ${toggleText}
+                        </button>
+                    </div>
+                `;
+            });
+        } else {
+            ambulanceList.innerHTML = "<p>No ambulances added yet.</p>";
+        }
+    }
+
+    // Load ambulances when tab is opened
+    const ambulanceTab = document.querySelector('a[href="#ambulances"]');
+    if (ambulanceTab) {
+        ambulanceTab.addEventListener("click", loadAmbulances);
+    }
+
+    // 🚑 Toggle ambulance availability status (available <-> on-duty)
+    window.toggleAmbulanceStatus = async function (ambulanceId, currentStatus) {
+        const newStatus = currentStatus === "available" ? "on-duty" : "available";
+
+        if (!confirm(`Change status to '${newStatus}'?`)) return;
+
+        try {
+            const response = await fetch("/update_ambulance_status", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    ambulance_id: ambulanceId,
+                    status: newStatus
+                })
+            });
+
+            const result = await response.json();
+            alert(result.message);
+            if (result.success) {
+                loadAmbulances(); // Refresh instantly
+            }
+        } catch (err) {
+            console.error("Error updating ambulance status:", err);
+            alert("Failed to update status. Try again.");
+        }
+    };
 });
 
-// ===== Accept / Reject Case =====
+// ==============================
+// Accept / Reject Case + Assign Ambulance
+// ==============================
+let currentIncidentId = null;
+
+// Updated accept/reject with ambulance selection
 async function updateCaseStatus(incidentId, status) {
+    if (status === "accepted") {
+        openAssignPopup(incidentId);
+        return;
+    }
+
+    const response = await fetch("/update_case_status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ incident_id: incidentId, status })
+    });
+
+    const data = await response.json();
+    alert(data.message);
+    if (data.success) location.reload();
+}
+
+// 🚑 Open popup and list ambulances
+function openAssignPopup(incidentId) {
+    currentIncidentId = incidentId;
+    const popup = document.getElementById("assignAmbulancePopup");
+    const listDiv = document.getElementById("ambulanceOptions");
+    popup.style.display = "flex";
+
+    fetch("/ambulances")
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.ambulances.length > 0) {
+                listDiv.innerHTML = data.ambulances
+                    .filter(a => a.status === "available")
+                    .map(a => `
+                        <div class="ambulance-option">
+                            <p>🚐 <strong>${a.vehicle_number}</strong> — ${a.driver_name} (${a.phone})</p>
+                            <button class="btn assign-btn" onclick="assignAmbulance('${a._id}', this)">Assign</button>
+                        </div>
+                    `).join("");
+            } else {
+                listDiv.innerHTML = "<p>No available ambulances right now.</p>";
+            }
+        });
+}
+
+function closeAssignPopup() {
+    document.getElementById("assignAmbulancePopup").style.display = "none";
+    currentIncidentId = null;
+}
+
+// 🚑 Assign ambulance to the case (improved)
+async function assignAmbulance(ambulanceId, btnElem) {
+    if (!currentIncidentId) return alert("No case selected");
+
+    // disable button to prevent double-clicks
+    if (btnElem) {
+        btnElem.disabled = true;
+        btnElem.textContent = "Assigning...";
+    }
+
     try {
-        const response = await fetch("/update_case_status", {
+        const res = await fetch("/assign_ambulance", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ incident_id: incidentId, status })
+            body: JSON.stringify({
+                incident_id: currentIncidentId,
+                ambulance_id: ambulanceId
+            })
         });
 
-        const result = await response.json();
-        const statusElement = document.getElementById(`status-${incidentId}`);
+        const data = await res.json();
 
-        if (result.success) {
-            statusElement.textContent = `Case ${status.toUpperCase()}`;
-            statusElement.style.color = status === "accepted" ? "green" : "red";
-
-            if (status === "accepted") {
-                const acceptedCases = document.getElementById("acceptedCases");
-                acceptedCases.textContent = parseInt(acceptedCases.textContent) + 1;
+        if (!res.ok) {
+            // show specific message if provided
+            alert(data.message || "Failed to assign ambulance");
+            if (btnElem) {
+                btnElem.disabled = false;
+                btnElem.textContent = "Assign";
             }
-
-            document.querySelector(`#case-${incidentId} .accept-btn`).disabled = true;
-            document.querySelector(`#case-${incidentId} .reject-btn`).disabled = true;
-        } else {
-            alert(result.message);
+            // If conflict (409) reload to reflect accepted status
+            if (res.status === 409) location.reload();
+            return;
         }
+
+        // success
+        alert(data.message || "Assigned!");
+        closeAssignPopup();
+        // reload so dashboard shows accepted state and ambulance list updates
+        location.reload();
     } catch (err) {
-        console.error("Error updating case status:", err);
+        console.error("assignAmbulance error:", err);
+        alert("Network or server error while assigning ambulance");
+        if (btnElem) {
+            btnElem.disabled = false;
+            btnElem.textContent = "Assign";
+        }
     }
 }
+
