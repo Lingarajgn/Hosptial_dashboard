@@ -175,33 +175,25 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // Load ambulances when tab is opened
     const ambulanceTab = document.querySelector('a[href="#ambulances"]');
     if (ambulanceTab) {
         ambulanceTab.addEventListener("click", loadAmbulances);
     }
 
-    // 🚑 Toggle ambulance availability status (available <-> on-duty)
     window.toggleAmbulanceStatus = async function (ambulanceId, currentStatus) {
         const newStatus = currentStatus === "available" ? "on-duty" : "available";
-
         if (!confirm(`Change status to '${newStatus}'?`)) return;
 
         try {
             const response = await fetch("/update_ambulance_status", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    ambulance_id: ambulanceId,
-                    status: newStatus
-                })
+                body: JSON.stringify({ ambulance_id: ambulanceId, status: newStatus })
             });
 
             const result = await response.json();
             alert(result.message);
-            if (result.success) {
-                loadAmbulances(); // Refresh instantly
-            }
+            if (result.success) loadAmbulances();
         } catch (err) {
             console.error("Error updating ambulance status:", err);
             alert("Failed to update status. Try again.");
@@ -210,11 +202,10 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ==============================
-// Accept / Reject Case + Assign Ambulance
+// Accept / Reject Case + Assign Ambulance + Delete Decision
 // ==============================
 let currentIncidentId = null;
 
-// Updated accept/reject with ambulance selection
 async function updateCaseStatus(incidentId, status) {
     if (status === "accepted") {
         openAssignPopup(incidentId);
@@ -232,7 +223,24 @@ async function updateCaseStatus(incidentId, status) {
     if (data.success) location.reload();
 }
 
-// 🚑 Open popup and list ambulances
+// 🗑️ Delete Case Status (Revert Decision)
+async function deleteCaseStatus(incidentId) {
+    if (!confirm("Are you sure you want to delete this case decision?")) return;
+    try {
+        const response = await fetch("/delete_case_status", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ incident_id: incidentId })
+        });
+        const data = await response.json();
+        alert(data.message);
+        if (data.success) location.reload();
+    } catch (err) {
+        console.error("deleteCaseStatus error:", err);
+        alert("Failed to delete case decision. Try again.");
+    }
+}
+
 function openAssignPopup(incidentId) {
     currentIncidentId = incidentId;
     const popup = document.getElementById("assignAmbulancePopup");
@@ -262,11 +270,9 @@ function closeAssignPopup() {
     currentIncidentId = null;
 }
 
-// 🚑 Assign ambulance to the case (improved)
 async function assignAmbulance(ambulanceId, btnElem) {
     if (!currentIncidentId) return alert("No case selected");
 
-    // disable button to prevent double-clicks
     if (btnElem) {
         btnElem.disabled = true;
         btnElem.textContent = "Assigning...";
@@ -285,21 +291,17 @@ async function assignAmbulance(ambulanceId, btnElem) {
         const data = await res.json();
 
         if (!res.ok) {
-            // show specific message if provided
             alert(data.message || "Failed to assign ambulance");
             if (btnElem) {
                 btnElem.disabled = false;
                 btnElem.textContent = "Assign";
             }
-            // If conflict (409) reload to reflect accepted status
             if (res.status === 409) location.reload();
             return;
         }
 
-        // success
         alert(data.message || "Assigned!");
         closeAssignPopup();
-        // reload so dashboard shows accepted state and ambulance list updates
         location.reload();
     } catch (err) {
         console.error("assignAmbulance error:", err);
@@ -310,4 +312,3 @@ async function assignAmbulance(ambulanceId, btnElem) {
         }
     }
 }
-

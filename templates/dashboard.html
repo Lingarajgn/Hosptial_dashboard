@@ -89,11 +89,13 @@
                             {% if inc.status_info.status == 'accepted' %}
                                 {% if inc.status_info.hospital_name == hospital_name %}
                                     <p class="case-status accepted">✅ Accepted by You</p>
+                                    <button class="btn cancel-btn" onclick="deleteCaseStatus('{{ inc._id }}')">🗑️ Delete Decision</button>
                                 {% else %}
                                     <p class="case-status taken">🚫 Already accepted by another hospital</p>
                                 {% endif %}
                             {% elif inc.status_info.status == 'rejected' %}
-                                <p class="case-status rejected">❌ Rejected by a hospital</p>
+                                <p class="case-status rejected">❌ Rejected by You</p>
+                                <button class="btn cancel-btn" onclick="deleteCaseStatus('{{ inc._id }}')">🗑️ Delete Decision</button>
                             {% endif %}
                         {% else %}
                             <div class="case-actions">
@@ -126,9 +128,7 @@
                 <button type="button" class="btn cancel-btn" id="cancelAmbulanceBtn">Cancel</button>
             </form>
 
-            <div id="ambulanceList" class="ambulance-list">
-                <!-- 🚐 Loaded dynamically from JS -->
-            </div>
+            <div id="ambulanceList" class="ambulance-list"></div>
         </section>
 
         <!-- Settings Section -->

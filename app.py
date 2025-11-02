@@ -182,18 +182,46 @@ def case_detail(incident_id):
 # -----------------------------
 @app.route("/ambulances", methods=["GET"])
 def get_ambulances():
-    """Fetch all ambulances belonging to the logged-in hospital."""
+    """Fetch all ambulances belonging to the logged-in hospital and auto-sync their availability."""
     if "email" not in session:
         return jsonify({"success": False, "message": "Not logged in"}), 403
 
     hospital_name = session.get("hospital_name")
     ambs = list(ambulances_collection.find({"hospital_name": hospital_name}))
 
-    for a in ambs:
-        a["_id"] = str(a["_id"])
+    for amb in ambs:
+        amb_id = amb.get("_id")
+        current_incident = amb.get("current_incident_id")
+
+        # 🧠 Automatically sync status
+        if not current_incident or current_incident in ("", None):
+            # No case → mark available
+            if amb.get("status") != "available":
+                ambulances_collection.update_one(
+                    {"_id": amb_id},
+                    {"$set": {"status": "available", "current_incident_id": None}}
+                )
+            amb["status"] = "available"
+            amb["current_incident_id"] = None
+        else:
+            # Has assigned case → ensure on-duty
+            if amb.get("status") != "on-duty":
+                ambulances_collection.update_one(
+                    {"_id": amb_id},
+                    {"$set": {"status": "on-duty"}}
+                )
+            amb["status"] = "on-duty"
+
+        amb["_id"] = str(amb["_id"])
 
     return jsonify({"success": True, "ambulances": ambs})
 
+
+
+
+# -----------------------------
+# ADD AMBULANCE
+# -----------------------------
 
 @app.route("/add_ambulance", methods=["POST"])
 def add_ambulance():
@@ -220,9 +248,13 @@ def add_ambulance():
     return jsonify({"success": True, "message": "Ambulance added successfully"})
 
 
+# -----------------------------
+# UPDATE AMBULANCE STATUS
+# -----------------------------
+
 @app.route("/update_ambulance_status", methods=["POST"])
 def update_ambulance_status():
-    """Manually toggle ambulance status between available / on-duty."""
+    """Manually toggle ambulance status between available / on-duty and clear incident link if available."""
     if "email" not in session:
         return jsonify({"success": False, "message": "Not logged in"}), 403
 
@@ -234,11 +266,19 @@ def update_ambulance_status():
         return jsonify({"success": False, "message": "Invalid data"}), 400
 
     try:
+        update_data = {"status": new_status}
+
+        # 🧹 If ambulance is now available, remove the linked incident
+        if new_status == "available":
+            update_data["current_incident_id"] = None
+
         ambulances_collection.update_one(
             {"_id": ObjectId(amb_id)},
-            {"$set": {"status": new_status}}
+            {"$set": update_data}
         )
+
         return jsonify({"success": True, "message": f"Ambulance marked as {new_status}"})
+
     except Exception as e:
         print("❌ Ambulance status update error:", e)
         return jsonify({"success": False, "message": "Error updating status"}), 500
@@ -261,12 +301,12 @@ def assign_ambulance():
         return jsonify({"success": False, "message": "Missing incident_id or ambulance_id"}), 400
 
     try:
-        # 1) Check whether the incident is already accepted by any hospital
+        # 1️⃣ Check if the incident is already accepted by another hospital
         existing_accept = case_status_collection.find_one({"incident_id": incident_id, "status": "accepted"})
         if existing_accept:
             return jsonify({"success": False, "message": "Case already accepted by another hospital"}), 409
 
-        # 2) Mark the case as accepted and save ambulance info (store ambulance id as string)
+        # 2️⃣ Mark case as accepted and link ambulance
         case_status_collection.update_one(
             {"incident_id": incident_id},
             {"$set": {
@@ -278,16 +318,61 @@ def assign_ambulance():
             upsert=True
         )
 
-        # 3) Mark ambulance as on-duty
+        # 3️⃣ Update ambulance record → mark as on-duty AND link to the incident
         ambulances_collection.update_one(
             {"_id": ObjectId(ambulance_id)},
-            {"$set": {"status": "on-duty"}}
+            {"$set": {
+                "status": "on-duty",
+                "current_incident_id": incident_id  # ✅ store which incident it handles
+            }}
         )
 
-        return jsonify({"success": True, "message": "Ambulance assigned and case accepted successfully!"})
+        return jsonify({"success": True, "message": "Ambulance assigned and incident linked successfully!"})
+
     except Exception as e:
         print("❌ assign_ambulance error:", e)
         return jsonify({"success": False, "message": "Server error while assigning ambulance"}), 500
+
+# -----------------------------
+# DELETE CASE STATUS (Revert Decision)
+# -----------------------------
+@app.route("/delete_case_status", methods=["POST"])
+def delete_case_status():
+    """Allow hospital to revert (delete) their case decision."""
+    if "email" not in session:
+        return jsonify({"success": False, "message": "Not logged in"}), 403
+
+    data = request.get_json()
+    incident_id = data.get("incident_id")
+    hospital_name = session.get("hospital_name")
+
+    if not incident_id:
+        return jsonify({"success": False, "message": "Missing incident_id"}), 400
+
+    try:
+        # 🧹 Remove only this hospital's decision
+        result = case_status_collection.delete_one({
+            "incident_id": incident_id,
+            "hospital_name": hospital_name
+        })
+
+        if result.deleted_count == 0:
+            return jsonify({"success": False, "message": "No case decision found to delete"}), 404
+
+        # 🩺 Also release any ambulance linked to this case
+        linked_ambulance = ambulances_collection.find_one({"current_incident_id": incident_id})
+        if linked_ambulance:
+            ambulances_collection.update_one(
+                {"_id": linked_ambulance["_id"]},
+                {"$set": {"status": "available", "current_incident_id": None}}
+            )
+
+        return jsonify({"success": True, "message": "Case decision removed successfully"})
+
+
+    except Exception as e:
+        print("❌ delete_case_status error:", e)
+        return jsonify({"success": False, "message": "Server error while deleting case status"}), 500
 
 
 
