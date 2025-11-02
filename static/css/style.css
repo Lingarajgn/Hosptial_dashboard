@@ -487,3 +487,21 @@ body {
     padding: 20px;
   }
 }
+
+/* 🧹 Clear Case Button */
+.clear-btn {
+  background-color: #ff9800;
+  color: white;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.clear-btn:hover {
+  background-color: #e68900;
+  transform: translateY(-1px);
+}
+

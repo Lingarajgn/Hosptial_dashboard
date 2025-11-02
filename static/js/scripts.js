@@ -241,6 +241,44 @@ async function deleteCaseStatus(incidentId) {
     }
 }
 
+// ==============================
+// 🧹 CLEAR INCIDENT (Delete Case)
+// ==============================
+async function clearIncident(incidentId) {
+    if (!confirm("Are you sure you want to permanently delete this case?")) return;
+
+    try {
+        const res = await fetch("/delete_incident", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ incident_id: incidentId })
+        });
+
+        const data = await res.json();
+        alert(data.message);
+
+        if (data.success) {
+            // Smoothly remove the case card
+            const card = document.getElementById(`case-${incidentId}`);
+            if (card) {
+                card.style.transition = "opacity 0.4s ease";
+                card.style.opacity = "0";
+                setTimeout(() => card.remove(), 400);
+            }
+
+            // 🔄 Reload ambulance section silently
+            if (typeof loadAmbulances === "function") {
+                loadAmbulances();
+            }
+        }
+    } catch (err) {
+        console.error("clearIncident error:", err);
+        alert("Failed to clear case. Please try again.");
+    }
+}
+
+
+
 function openAssignPopup(incidentId) {
     currentIncidentId = incidentId;
     const popup = document.getElementById("assignAmbulancePopup");

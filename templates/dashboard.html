@@ -72,10 +72,14 @@
 
             {% if incidents %}
                 {% for inc in incidents %}
-                <div class="card" id="case-{{ inc._id }}">
-                    <div class="card-header">
-                        <h3>📍 {{ inc.user_email }}</h3>
-                    </div>
+                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+                    <h3>📍 {{ inc.user_email }}</h3>
+                    {% if inc.status_info and inc.status_info.hospital_name == hospital_name %}
+                        <button class="btn clear-btn" onclick="clearIncident('{{ inc._id }}')">🧹 Clear Case</button>
+                    {% endif %}
+                </div>
+
+
                     <div class="card-body">
                         <p><strong>Latitude:</strong> {{ inc.lat }}</p>
                         <p><strong>Longitude:</strong> {{ inc.lng }}</p>

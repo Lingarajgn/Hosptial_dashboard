@@ -374,7 +374,51 @@ def delete_case_status():
         print("❌ delete_case_status error:", e)
         return jsonify({"success": False, "message": "Server error while deleting case status"}), 500
 
+# -----------------------------
+# DELETE INCIDENT (CLEAR CASE)
+# -----------------------------
+@app.route("/delete_incident", methods=["POST"])
+def delete_incident():
+    """Completely delete an incident and related data, and free any linked ambulance."""
+    if "email" not in session:
+        return jsonify({"success": False, "message": "Not logged in"}), 403
 
+    data = request.get_json()
+    incident_id = data.get("incident_id")
+
+    if not incident_id:
+        return jsonify({"success": False, "message": "Missing incident_id"}), 400
+
+    try:
+        # 🗑️ 1️⃣ Delete the incident itself
+        result = incidents_collection.delete_one({"_id": ObjectId(incident_id)})
+
+        # 🧹 2️⃣ Delete any related case status
+        case_status_collection.delete_many({"incident_id": incident_id})
+
+        # 🚑 3️⃣ Find and free any ambulances linked to this case
+        linked_ambulances = list(ambulances_collection.find({"current_incident_id": incident_id}))
+        if linked_ambulances:
+            for amb in linked_ambulances:
+                ambulances_collection.update_one(
+                    {"_id": amb["_id"]},
+                    {"$set": {"status": "available", "current_incident_id": None}}
+                )
+                print(f"🚐 Freed ambulance: {amb.get('vehicle_number', 'N/A')}")
+
+        # ✅ 4️⃣ Handle case where incident wasn't found
+        if result.deleted_count == 0:
+            return jsonify({"success": False, "message": "Incident not found"}), 404
+
+        print(f"✅ Incident {incident_id} and linked data removed successfully.")
+        return jsonify({
+            "success": True,
+            "message": "Incident cleared successfully! Linked ambulance(s) released."
+        })
+
+    except Exception as e:
+        print(f"❌ delete_incident error: {e}")
+        return jsonify({"success": False, "message": "Server error while deleting incident"}), 500
 
 
 
