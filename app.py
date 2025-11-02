@@ -19,6 +19,8 @@ try:
     incidents_collection = db['incidents']
     case_status_collection = db['case_status']
     ambulances_collection = db['ambulances']
+    resolved_cases_collection = db['resolved_cases']
+
     print("✅ Connected to MongoDB successfully")
 except Exception as e:
     print("❌ MongoDB Connection Failed:", e)
@@ -78,6 +80,18 @@ def dashboard():
             "hospital_name": hospital_name
         })
 
+        # 🚐 Available ambulances count
+        available_ambulances = ambulances_collection.count_documents({
+            "hospital_name": hospital_name,
+            "status": "available"
+        })
+
+        # ✅ Resolved cases count
+        resolved_cases = resolved_cases_collection.count_documents({
+            "hospital_name": hospital_name
+        })
+
+
     except Exception as e:
         print("❌ Error fetching incidents:", e)
         incidents, active_cases, accepted_cases = [], 0, 0
@@ -86,11 +100,12 @@ def dashboard():
         "dashboard.html",
         active_cases=active_cases,
         accepted_cases=accepted_cases,
+        available_ambulances=available_ambulances,
+        resolved_cases=resolved_cases,
         incidents=incidents,
         hospital_name=hospital_name,
         user=user
     )
-
 
 
 # -----------------------------
@@ -374,52 +389,63 @@ def delete_case_status():
         print("❌ delete_case_status error:", e)
         return jsonify({"success": False, "message": "Server error while deleting case status"}), 500
 
+
 # -----------------------------
 # DELETE INCIDENT (CLEAR CASE)
 # -----------------------------
 @app.route("/delete_incident", methods=["POST"])
 def delete_incident():
-    """Completely delete an incident and related data, and free any linked ambulance."""
+    """Completely delete an incident and related data, and free any linked ambulance. Store it as resolved."""
     if "email" not in session:
         return jsonify({"success": False, "message": "Not logged in"}), 403
 
     data = request.get_json()
     incident_id = data.get("incident_id")
+    hospital_name = session.get("hospital_name")
 
     if not incident_id:
         return jsonify({"success": False, "message": "Missing incident_id"}), 400
 
     try:
-        # 🗑️ 1️⃣ Delete the incident itself
-        result = incidents_collection.delete_one({"_id": ObjectId(incident_id)})
-
-        # 🧹 2️⃣ Delete any related case status
-        case_status_collection.delete_many({"incident_id": incident_id})
-
-        # 🚑 3️⃣ Find and free any ambulances linked to this case
-        linked_ambulances = list(ambulances_collection.find({"current_incident_id": incident_id}))
-        if linked_ambulances:
-            for amb in linked_ambulances:
-                ambulances_collection.update_one(
-                    {"_id": amb["_id"]},
-                    {"$set": {"status": "available", "current_incident_id": None}}
-                )
-                print(f"🚐 Freed ambulance: {amb.get('vehicle_number', 'N/A')}")
-
-        # ✅ 4️⃣ Handle case where incident wasn't found
-        if result.deleted_count == 0:
+        # 🩺 1️⃣ Get the incident before deleting
+        incident = incidents_collection.find_one({"_id": ObjectId(incident_id)})
+        if not incident:
             return jsonify({"success": False, "message": "Incident not found"}), 404
 
-        print(f"✅ Incident {incident_id} and linked data removed successfully.")
-        return jsonify({
-            "success": True,
-            "message": "Incident cleared successfully! Linked ambulance(s) released."
+        # 🚑 2️⃣ Get linked ambulance (if any)
+        linked_ambulance = ambulances_collection.find_one({"current_incident_id": incident_id})
+        ambulance_id = str(linked_ambulance["_id"]) if linked_ambulance else None
+        driver_name = linked_ambulance.get("driver_name") if linked_ambulance else None
+        vehicle_number = linked_ambulance.get("vehicle_number") if linked_ambulance else None
+
+        # ✅ 3️⃣ Insert into resolved_cases collection
+        resolved_cases_collection.insert_one({
+            "incident_id": str(incident["_id"]),
+            "user_email": incident.get("user_email", "Unknown"),
+            "hospital_name": hospital_name,
+            "ambulance_id": ambulance_id,
+            "driver_name": driver_name,
+            "vehicle_number": vehicle_number,
+            "resolved_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         })
 
-    except Exception as e:
-        print(f"❌ delete_incident error: {e}")
-        return jsonify({"success": False, "message": "Server error while deleting incident"}), 500
+        # 🗑️ 4️⃣ Delete from incidents & case_status
+        incidents_collection.delete_one({"_id": ObjectId(incident_id)})
+        case_status_collection.delete_many({"incident_id": incident_id})
 
+        # 🚐 5️⃣ Release ambulance if linked
+        if linked_ambulance:
+            ambulances_collection.update_one(
+                {"_id": linked_ambulance["_id"]},
+                {"$set": {"status": "available", "current_incident_id": None}}
+            )
+
+        print(f"✅ Case {incident_id} marked as resolved and removed.")
+        return jsonify({"success": True, "message": "Case cleared and marked as resolved."})
+
+    except Exception as e:
+        print("❌ delete_incident error:", e)
+        return jsonify({"success": False, "message": "Server error while deleting incident"}), 500
 
 
 # -----------------------------

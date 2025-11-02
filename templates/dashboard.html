@@ -39,13 +39,17 @@
             <div class="profile-box">
                 <span id="hospitalName">{{ hospital_name }}</span>
                 <div class="dropdown" id="profileDropdown">
-                    <button class="dropbtn">▼</button>
+                    <button class="dropbtn">
+                        <i class="chevron">&#x25BC;</i>  <!-- Down arrow symbol -->
+                    </button>
                     <div class="dropdown-content" id="dropdownMenu">
-                        <a href="#">Profile</a>
+                        <a href="#" id="profileLink">Profile</a>
                         <a href="{{ url_for('logout') }}">Logout</a>
                     </div>
+
                 </div>
             </div>
+
         </header>
 
         <!-- Dashboard Section -->
@@ -59,7 +63,16 @@
                     <span id="acceptedCases">{{ accepted_cases }}</span>
                     <p>Accepted Cases</p>
                 </div>
+                <div class="stat-box">
+                    <span id="availableAmbulances">{{ available_ambulances }}</span>
+                    <p>Available Ambulances</p>
+                </div>
+                <div class="stat-box">
+                    <span id="resolvedCases">{{ resolved_cases }}</span>
+                    <p>Resolved Cases</p>
+                </div>
             </section>
+
 
             <div class="map-container">
                 <div id="map" class="map-placeholder"></div>

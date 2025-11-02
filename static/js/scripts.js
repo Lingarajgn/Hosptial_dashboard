@@ -199,6 +199,32 @@ document.addEventListener("DOMContentLoaded", () => {
             alert("Failed to update status. Try again.");
         }
     };
+
+    // ===== 🔗 Dropdown Profile → Show Settings Tab =====
+    const profileLink = document.getElementById("profileLink");
+    if (profileLink) {
+        profileLink.addEventListener("click", (e) => {
+            e.preventDefault();
+
+            // Hide all other tabs
+            document.querySelectorAll(".tab-section").forEach(sec => sec.style.display = "none");
+
+            // Show settings
+            const settingsSection = document.getElementById("settings");
+            if (settingsSection) settingsSection.style.display = "block";
+
+            // Update sidebar highlight
+            document.querySelectorAll(".sidebar nav a").forEach(l => l.classList.remove("active"));
+            const settingsTab = document.querySelector('.sidebar nav a[href="#settings"]');
+            if (settingsTab) settingsTab.classList.add("active");
+
+            // Close dropdown
+            dropdownMenu.classList.remove("show");
+
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+    }
 });
 
 // ==============================
@@ -258,7 +284,6 @@ async function clearIncident(incidentId) {
         alert(data.message);
 
         if (data.success) {
-            // Smoothly remove the case card
             const card = document.getElementById(`case-${incidentId}`);
             if (card) {
                 card.style.transition = "opacity 0.4s ease";
@@ -266,7 +291,6 @@ async function clearIncident(incidentId) {
                 setTimeout(() => card.remove(), 400);
             }
 
-            // 🔄 Reload ambulance section silently
             if (typeof loadAmbulances === "function") {
                 loadAmbulances();
             }
@@ -276,8 +300,6 @@ async function clearIncident(incidentId) {
         alert("Failed to clear case. Please try again.");
     }
 }
-
-
 
 function openAssignPopup(incidentId) {
     currentIncidentId = incidentId;
