@@ -137,7 +137,7 @@ body {
           </p>
         </div>
 
-        <!-- Directions link (below details, not distance) -->
+        <!-- Directions link -->
         <div id="directionsLink" style="margin-top:20px;text-align:center;"></div>
       </div>
 
@@ -152,64 +152,34 @@ body {
 const incidentLat = Number({{ incident.lat }});
 const incidentLng = Number({{ incident.lng }});
 
+// Initialize Leaflet map
 const map = L.map('caseMap').setView([incidentLat, incidentLng], 14);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
   attribution: '© OpenStreetMap contributors'
 }).addTo(map);
 
+// Add marker for the incident
 L.marker([incidentLat, incidentLng]).addTo(map)
   .bindPopup(`<b>{{ incident.user_email }}</b><br>📍 Accident Location: ${incidentLat.toFixed(4)}, ${incidentLng.toFixed(4)}`)
   .openPopup();
 
-// Directions link section
+// Google Maps directions link — uses user's real GPS automatically
 const linkContainer = document.getElementById('directionsLink');
-linkContainer.innerHTML = `<p>Preparing directions link...</p>`;
+const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${incidentLat},${incidentLng}&travelmode=driving`;
 
-function buildMapsLinkWithOrigin(userLat, userLng) {
-  const midLat = (userLat + incidentLat) / 2;
-  const midLng = (userLng + incidentLng) / 2;
-  const mapsUrl = `https://www.google.com/maps/dir/${userLat},${userLng}/${incidentLat},${incidentLng}/@${midLat},${midLng},12z`;
-
-  linkContainer.innerHTML = `
-    <a href="${mapsUrl}" target="_blank" style="
-        background-color:#007bff;
-        color:white;
-        padding:10px 16px;
-        border-radius:8px;
-        text-decoration:none;
-        font-weight:600;">
-      🚗 Open Directions in Google Maps
-    </a>
-    <p class="link-note">(Opens a new tab showing your device location and the incident route.)</p>
-  `;
-}
-
-function buildMapsLinkFallback() {
-  const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${incidentLat},${incidentLng}&travelmode=driving`;
-  linkContainer.innerHTML = `
-    <p style="font-size:15px;color:#666;">Unable to detect your location. Open Google Maps for directions:</p>
-    <a href="${mapsUrl}" target="_blank" style="
-        background-color:#007bff;
-        color:white;
-        padding:10px 16px;
-        border-radius:8px;
-        text-decoration:none;
-        font-weight:600;">
-      🚗 Open Directions in Google Maps
-    </a>
-  `;
-}
-
-if (navigator.geolocation) {
-  navigator.geolocation.getCurrentPosition(
-    pos => buildMapsLinkWithOrigin(pos.coords.latitude, pos.coords.longitude),
-    err => buildMapsLinkFallback(),
-    { enableHighAccuracy: true, timeout: 10000 }
-  );
-} else {
-  buildMapsLinkFallback();
-}
+linkContainer.innerHTML = `
+  <a href="${mapsUrl}" target="_blank" style="
+      background-color:#007bff;
+      color:white;
+      padding:10px 16px;
+      border-radius:8px;
+      text-decoration:none;
+      font-weight:600;">
+    🚗 Open Directions in Google Maps
+  </a>
+  <p class="link-note">(Google Maps will automatically detect your current location.)</p>
+`;
 </script>
 </body>
 </html>

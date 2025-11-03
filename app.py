@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from pymongo import MongoClient
-from bson import ObjectId
+from bson.objectid import ObjectId
 from werkzeug.security import generate_password_hash, check_password_hash
 from config import MONGO_URI
 from datetime import datetime
@@ -40,11 +40,9 @@ def dashboard():
     hospital_name = session.get("hospital_name")
 
     try:
-        # 🟢 1️⃣ Fetch data from MongoDB
         incidents = list(incidents_collection.find())
         all_statuses = list(case_status_collection.find())
 
-        # 🟢 2️⃣ Convert ObjectIds to strings (ADD THIS PART HERE)
         for inc in incidents:
             inc["_id"] = str(inc["_id"])
             inc["lat"] = inc.get("lat", 14.4663)
@@ -59,7 +57,6 @@ def dashboard():
             if "incident_id" in cs:
                 cs["incident_id"] = str(cs["incident_id"])
 
-        # 🟢 3️⃣ Continue with the rest of your logic
         accepted_cases_global = {cs["incident_id"]: cs for cs in all_statuses if cs["status"] == "accepted"}
         rejected_cases_by_hospital = {
             cs["incident_id"]: cs for cs in all_statuses
@@ -80,17 +77,14 @@ def dashboard():
             "hospital_name": hospital_name
         })
 
-        # 🚐 Available ambulances count
         available_ambulances = ambulances_collection.count_documents({
             "hospital_name": hospital_name,
             "status": "available"
         })
 
-        # ✅ Resolved cases count
         resolved_cases = resolved_cases_collection.count_documents({
             "hospital_name": hospital_name
         })
-
 
     except Exception as e:
         print("❌ Error fetching incidents:", e)
@@ -107,51 +101,77 @@ def dashboard():
         user=user
     )
 
-
 # -----------------------------
 # UPDATE CASE STATUS
 # -----------------------------
 @app.route("/update_case_status", methods=["POST"])
 def update_case_status():
+    """
+    Update case status:
+    ✅ Store only 'accepted' in DB
+    ❌ If user rejects an already accepted case, delete it
+    🚑 If any ambulance was linked, free it automatically
+    """
     if "email" not in session:
         return jsonify({"success": False, "message": "Not logged in"}), 403
 
     data = request.get_json()
     incident_id = data.get("incident_id")
     status = data.get("status")
-    hospital_name = session.get("hospital_name")
 
-    if not incident_id or not status:
-        return jsonify({"success": False, "message": "Invalid data"}), 400
+    if not incident_id or status not in ["accepted", "rejected"]:
+        return jsonify({"success": False, "message": "Invalid input"}), 400
 
-    # ✅ CASE ALREADY ACCEPTED BY ANY HOSPITAL
-    existing_accept = case_status_collection.find_one({"incident_id": incident_id, "status": "accepted"})
-    if existing_accept and status == "accepted":
-        return jsonify({"success": False, "message": "Case already accepted by another hospital"}), 409
+    user_email = session["email"]
+    hospital = hospital_users.find_one({"email": user_email})
+    hospital_name = hospital.get("hospital_name", "Unknown Hospital")
 
-    if status == "accepted":
-        # ✅ Only one hospital can accept
-        case_status_collection.update_one(
-            {"incident_id": incident_id},
-            {"$set": {"status": "accepted", "hospital_name": hospital_name}},
-            upsert=True
-        )
+    try:
+        if status == "accepted":
+            # ✅ Add or update accepted case
+            case_status_collection.update_one(
+                {"incident_id": incident_id, "hospital_name": hospital_name},
+                {
+                    "$set": {
+                        "incident_id": incident_id,
+                        "hospital_name": hospital_name,
+                        "accepted_by": user_email,
+                        "status": "accepted",
+                        "updated_at": datetime.utcnow()
+                    }
+                },
+                upsert=True
+            )
+            return jsonify({"success": True, "message": "Case accepted successfully!"})
 
-    elif status == "rejected":
-        # ✅ Each hospital can reject independently
-        case_status_collection.update_one(
-            {"incident_id": incident_id, "hospital_name": hospital_name},
-            {"$set": {"status": "rejected"}},
-            upsert=True
-        )
+        elif status == "rejected":
+            # 🧹 Delete case status (don’t store rejected)
+            delete_result = case_status_collection.delete_one({
+                "incident_id": incident_id,
+                "hospital_name": hospital_name
+            })
 
-    return jsonify({"success": True, "message": f"Case {status} successfully"})
+            # 🚑 If an ambulance was assigned, mark it as available
+            linked_ambulance = ambulances_collection.find_one({"current_incident_id": incident_id})
+            if linked_ambulance:
+                ambulances_collection.update_one(
+                    {"_id": linked_ambulance["_id"]},
+                    {"$set": {"status": "available", "current_incident_id": None}}
+                )
+
+            if delete_result.deleted_count > 0:
+                msg = "Case rejected and ambulance (if any) released."
+            else:
+                msg = "Case was not previously accepted."
+            return jsonify({"success": True, "message": msg})
+
+    except Exception as e:
+        print("❌ update_case_status error:", e)
+        return jsonify({"success": False, "message": "Server error"}), 500
 
 # -----------------------------
-# /case/<incident_id>
+# CASE DETAIL PAGE
 # -----------------------------
-from bson import ObjectId
-
 @app.route("/case/<incident_id>")
 def case_detail(incident_id):
     if "email" not in session:
@@ -160,12 +180,10 @@ def case_detail(incident_id):
     hospital_name = session.get("hospital_name")
 
     try:
-        # Find the incident by its ObjectId
         incident = incidents_collection.find_one({"_id": ObjectId(incident_id)})
         if not incident:
             return "Case not found", 404
 
-        # Convert ObjectId to string
         incident["_id"] = str(incident["_id"])
         incident["lat"] = incident.get("lat", 14.4663)
         incident["lng"] = incident.get("lng", 75.9219)
@@ -174,7 +192,6 @@ def case_detail(incident_id):
         incident["accel_mag"] = incident.get("accel_mag", 0)
         incident["created_at"] = incident.get("metadata", {}).get("created_at", "N/A")
 
-        # Find case status (accepted/rejected)
         status = case_status_collection.find_one({"incident_id": str(incident["_id"])})
         if status:
             incident["status"] = status["status"]
@@ -192,8 +209,9 @@ def case_detail(incident_id):
         incident=incident,
         hospital_name=hospital_name
     )
+
 # -----------------------------
-# 🚑 AMBULANCE MANAGEMENT
+# AMBULANCE ROUTES
 # -----------------------------
 @app.route("/ambulances", methods=["GET"])
 def get_ambulances():
@@ -208,7 +226,7 @@ def get_ambulances():
         amb_id = amb.get("_id")
         current_incident = amb.get("current_incident_id")
 
-        # 🧠 Automatically sync status
+        # 🧠 Automatically sync status and mark assigned_case flag
         if not current_incident or current_incident in ("", None):
             # No case → mark available
             if amb.get("status") != "available":
@@ -217,15 +235,16 @@ def get_ambulances():
                     {"$set": {"status": "available", "current_incident_id": None}}
                 )
             amb["status"] = "available"
-            amb["current_incident_id"] = None
+            amb["assigned_case"] = False
         else:
-            # Has assigned case → ensure on-duty
+            # Has assigned case → ensure on-duty and lock it
             if amb.get("status") != "on-duty":
                 ambulances_collection.update_one(
                     {"_id": amb_id},
                     {"$set": {"status": "on-duty"}}
                 )
             amb["status"] = "on-duty"
+            amb["assigned_case"] = True
 
         amb["_id"] = str(amb["_id"])
 
@@ -235,12 +254,10 @@ def get_ambulances():
 
 
 # -----------------------------
-# ADD AMBULANCE
+# Add Ambulance
 # -----------------------------
-
 @app.route("/add_ambulance", methods=["POST"])
 def add_ambulance():
-    """Add a new ambulance record."""
     if "email" not in session:
         return jsonify({"success": False, "message": "Not logged in"}), 403
 
@@ -262,14 +279,14 @@ def add_ambulance():
     })
     return jsonify({"success": True, "message": "Ambulance added successfully"})
 
+from bson import ObjectId
 
 # -----------------------------
-# UPDATE AMBULANCE STATUS
+# UPDATE_AMBULANCE_STATUS ROUTES
 # -----------------------------
-
 @app.route("/update_ambulance_status", methods=["POST"])
 def update_ambulance_status():
-    """Manually toggle ambulance status between available / on-duty and clear incident link if available."""
+    """Toggle ambulance status (available ↔ on-duty), skip if assigned (locked)."""
     if "email" not in session:
         return jsonify({"success": False, "message": "Not logged in"}), 403
 
@@ -281,23 +298,42 @@ def update_ambulance_status():
         return jsonify({"success": False, "message": "Invalid data"}), 400
 
     try:
-        update_data = {"status": new_status}
+        # ✅ Ensure correct type conversion for ObjectId
+        try:
+            amb_obj_id = ObjectId(amb_id)
+        except Exception:
+            return jsonify({"success": False, "message": "Invalid ambulance ID format"}), 400
 
-        # 🧹 If ambulance is now available, remove the linked incident
+        ambulance = ambulances_collection.find_one({"_id": amb_obj_id})
+        if not ambulance:
+            return jsonify({"success": False, "message": "Ambulance not found"}), 404
+
+        # 🚫 If ambulance is assigned to a case → block manual status change
+        if ambulance.get("current_incident_id"):
+            return jsonify({
+                "success": False,
+                "message": "Ambulance is assigned to a case and cannot be manually updated."
+            })
+
+        # ✅ Toggle logic
+        update_data = {"status": new_status}
         if new_status == "available":
             update_data["current_incident_id"] = None
 
         ambulances_collection.update_one(
-            {"_id": ObjectId(amb_id)},
+            {"_id": amb_obj_id},
             {"$set": update_data}
         )
 
-        return jsonify({"success": True, "message": f"Ambulance marked as {new_status}"})
+        print(f"✅ Ambulance {amb_id} updated to {new_status}")
+        return jsonify({
+            "success": True,
+            "message": f"Ambulance marked as {new_status.capitalize()} successfully!"
+        })
 
     except Exception as e:
-        print("❌ Ambulance status update error:", e)
-        return jsonify({"success": False, "message": "Error updating status"}), 500
-
+        print("❌ update_ambulance_status error:", e)
+        return jsonify({"success": False, "message": "Server error"}), 500
 
 # -----------------------------
 # ASSIGN AMBULANCE TO A CASE

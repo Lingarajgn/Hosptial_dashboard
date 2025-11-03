@@ -17,7 +17,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // ===== Sidebar Tabs =====
     const navLinks = document.querySelectorAll(".sidebar nav a");
     const sections = document.querySelectorAll(".tab-section");
-
     navLinks.forEach(link => {
         link.addEventListener("click", (e) => {
             e.preventDefault();
@@ -141,7 +140,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // ===== Load Ambulances =====
     async function loadAmbulances() {
         const res = await fetch("/ambulances");
         const data = await res.json();
@@ -149,8 +147,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (data.success && data.ambulances.length > 0) {
             data.ambulances.forEach(amb => {
-                const toggleText = amb.status === "available" ? "Mark On-Duty" : "Mark Available";
-                const toggleColor = amb.status === "available" ? "#ffc107" : "#28a745";
+                let actionButton = "";
+
+                if (amb.status === "available") {
+                    actionButton = `
+                        <button class="btn" 
+                            style="background-color:#ffc107; color:white;"
+                            onclick="toggleAmbulanceStatus('${amb._id}', '${amb.status}')">
+                            Mark On-Duty
+                        </button>`;
+                } else if (amb.status === "on-duty" && !amb.assigned_case) {
+                    actionButton = `
+                        <button class="btn" 
+                            style="background-color:#28a745; color:white;"
+                            onclick="toggleAmbulanceStatus('${amb._id}', '${amb.status}')">
+                            Mark Available
+                        </button>`;
+                } else if (amb.status === "on-duty" && amb.assigned_case) {
+                    actionButton = `
+                        <button class="btn" style="background-color:#6c757d; color:white; cursor:not-allowed;" disabled>
+                            🔒 Assigned to Case
+                        </button>`;
+                }
 
                 ambulanceList.innerHTML += `
                     <div class="card">
@@ -159,16 +177,13 @@ document.addEventListener("DOMContentLoaded", () => {
                         <p><strong>Phone:</strong> ${amb.phone}</p>
                         <p><strong>Status:</strong> 
                             <span style="color:${amb.status === "available" ? "green" : "red"};">
-                                ${amb.status}
+                                ${amb.status}${amb.assigned_case ? " (Locked)" : ""}
                             </span>
                         </p>
-                        <button class="btn" 
-                            style="background-color:${toggleColor}; color:white;"
-                            onclick="toggleAmbulanceStatus('${amb._id}', '${amb.status}')">
-                            ${toggleText}
-                        </button>
+                        ${actionButton}
                     </div>
                 `;
+
             });
         } else {
             ambulanceList.innerHTML = "<p>No ambulances added yet.</p>";
@@ -176,9 +191,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const ambulanceTab = document.querySelector('a[href="#ambulances"]');
-    if (ambulanceTab) {
-        ambulanceTab.addEventListener("click", loadAmbulances);
-    }
+    if (ambulanceTab) ambulanceTab.addEventListener("click", loadAmbulances);
 
     window.toggleAmbulanceStatus = async function (ambulanceId, currentStatus) {
         const newStatus = currentStatus === "available" ? "on-duty" : "available";
@@ -192,36 +205,35 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             const result = await response.json();
+
+            if (!result.success) {
+                alert(result.message);
+                return;
+            }
+
             alert(result.message);
-            if (result.success) loadAmbulances();
+
+            // ✅ Reload ambulance list cleanly to reflect update
+            await loadAmbulances();
+
         } catch (err) {
             console.error("Error updating ambulance status:", err);
-            alert("Failed to update status. Try again.");
+            alert("Failed to update status. Please try again.");
         }
     };
 
-    // ===== 🔗 Dropdown Profile → Show Settings Tab =====
+
+    // ===== Profile Dropdown -> Settings =====
     const profileLink = document.getElementById("profileLink");
     if (profileLink) {
         profileLink.addEventListener("click", (e) => {
             e.preventDefault();
-
-            // Hide all other tabs
             document.querySelectorAll(".tab-section").forEach(sec => sec.style.display = "none");
-
-            // Show settings
             const settingsSection = document.getElementById("settings");
             if (settingsSection) settingsSection.style.display = "block";
-
-            // Update sidebar highlight
             document.querySelectorAll(".sidebar nav a").forEach(l => l.classList.remove("active"));
-            const settingsTab = document.querySelector('.sidebar nav a[href="#settings"]');
-            if (settingsTab) settingsTab.classList.add("active");
-
-            // Close dropdown
+            document.querySelector('.sidebar nav a[href="#settings"]').classList.add("active");
             dropdownMenu.classList.remove("show");
-
-            // Scroll to top
             window.scrollTo({ top: 0, behavior: "smooth" });
         });
     }
@@ -249,58 +261,21 @@ async function updateCaseStatus(incidentId, status) {
     if (data.success) location.reload();
 }
 
-// 🗑️ Delete Case Status (Revert Decision)
-async function deleteCaseStatus(incidentId) {
-    if (!confirm("Are you sure you want to delete this case decision?")) return;
-    try {
-        const response = await fetch("/delete_case_status", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ incident_id: incidentId })
-        });
-        const data = await response.json();
-        alert(data.message);
-        if (data.success) location.reload();
-    } catch (err) {
-        console.error("deleteCaseStatus error:", err);
-        alert("Failed to delete case decision. Try again.");
-    }
-}
 
-// ==============================
-// 🧹 CLEAR INCIDENT (Delete Case)
-// ==============================
+// 🧹 CLEAR INCIDENT
 async function clearIncident(incidentId) {
     if (!confirm("Are you sure you want to permanently delete this case?")) return;
-
-    try {
-        const res = await fetch("/delete_incident", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ incident_id: incidentId })
-        });
-
-        const data = await res.json();
-        alert(data.message);
-
-        if (data.success) {
-            const card = document.getElementById(`case-${incidentId}`);
-            if (card) {
-                card.style.transition = "opacity 0.4s ease";
-                card.style.opacity = "0";
-                setTimeout(() => card.remove(), 400);
-            }
-
-            if (typeof loadAmbulances === "function") {
-                loadAmbulances();
-            }
-        }
-    } catch (err) {
-        console.error("clearIncident error:", err);
-        alert("Failed to clear case. Please try again.");
-    }
+    const res = await fetch("/delete_incident", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ incident_id: incidentId })
+    });
+    const data = await res.json();
+    alert(data.message);
+    if (data.success) location.reload();
 }
 
+// Popup for assigning ambulance
 function openAssignPopup(incidentId) {
     currentIncidentId = incidentId;
     const popup = document.getElementById("assignAmbulancePopup");
@@ -332,40 +307,21 @@ function closeAssignPopup() {
 
 async function assignAmbulance(ambulanceId, btnElem) {
     if (!currentIncidentId) return alert("No case selected");
-
     if (btnElem) {
         btnElem.disabled = true;
         btnElem.textContent = "Assigning...";
     }
-
-    try {
-        const res = await fetch("/assign_ambulance", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                incident_id: currentIncidentId,
-                ambulance_id: ambulanceId
-            })
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-            alert(data.message || "Failed to assign ambulance");
-            if (btnElem) {
-                btnElem.disabled = false;
-                btnElem.textContent = "Assign";
-            }
-            if (res.status === 409) location.reload();
-            return;
-        }
-
-        alert(data.message || "Assigned!");
+    const res = await fetch("/assign_ambulance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ incident_id: currentIncidentId, ambulance_id: ambulanceId })
+    });
+    const data = await res.json();
+    alert(data.message);
+    if (data.success) {
         closeAssignPopup();
         location.reload();
-    } catch (err) {
-        console.error("assignAmbulance error:", err);
-        alert("Network or server error while assigning ambulance");
+    } else {
         if (btnElem) {
             btnElem.disabled = false;
             btnElem.textContent = "Assign";

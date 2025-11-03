@@ -1,199 +1,188 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hospital Dashboard | SwiftAid</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hospital Dashboard | SwiftAid</title>
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <script>
-        const incidentsData = {{ incidents|tojson }};
-    </script>
-    <script src="{{ url_for('static', filename='js/scripts.js') }}" defer></script>
+  <script>
+    const incidentsData = {{ incidents|tojson }};
+  </script>
+  <script src="{{ url_for('static', filename='js/scripts.js') }}" defer></script>
 </head>
 
 <body>
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="logo">
-            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="SwiftAid Logo" width="35">
-            SwiftAid
-        </div>
-
-        <nav>
-            <a href="#dashboard" class="active">🏠 Dashboard</a>
-            <a href="#cases">🚑 Cases</a>
-            <a href="#ambulances">🚐 Ambulances</a>
-            <a href="#settings">⚙️ Settings</a>
-        </nav>
-    </aside>
-
-    <!-- Main Content -->
-    <main class="main-content">
-        <header class="main-header">
-            <h2>Incident Dashboard</h2>
-
-            <div class="profile-box">
-                <span id="hospitalName">{{ hospital_name }}</span>
-                <div class="dropdown" id="profileDropdown">
-                    <button class="dropbtn">
-                        <i class="chevron">&#x25BC;</i>  <!-- Down arrow symbol -->
-                    </button>
-                    <div class="dropdown-content" id="dropdownMenu">
-                        <a href="#" id="profileLink">Profile</a>
-                        <a href="{{ url_for('logout') }}">Logout</a>
-                    </div>
-
-                </div>
-            </div>
-
-        </header>
-
-        <!-- Dashboard Section -->
-        <section id="dashboard" class="tab-section">
-            <section id="stats">
-                <div class="stat-box">
-                    <span>{{ active_cases }}</span>
-                    <p>Active Cases</p>
-                </div>
-                <div class="stat-box">
-                    <span id="acceptedCases">{{ accepted_cases }}</span>
-                    <p>Accepted Cases</p>
-                </div>
-                <div class="stat-box">
-                    <span id="availableAmbulances">{{ available_ambulances }}</span>
-                    <p>Available Ambulances</p>
-                </div>
-                <div class="stat-box">
-                    <span id="resolvedCases">{{ resolved_cases }}</span>
-                    <p>Resolved Cases</p>
-                </div>
-            </section>
-
-
-            <div class="map-container">
-                <div id="map" class="map-placeholder"></div>
-            </div>
-        </section>
-
-        <!-- Cases Section -->
-        <section id="cases" class="cases-section tab-section" style="display: none;">
-            <h2>🚑 Reported Cases</h2>
-
-            {% if incidents %}
-                {% for inc in incidents %}
-                <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
-                    <h3>📍 {{ inc.user_email }}</h3>
-                    {% if inc.status_info and inc.status_info.hospital_name == hospital_name %}
-                        <button class="btn clear-btn" onclick="clearIncident('{{ inc._id }}')">🧹 Clear Case</button>
-                    {% endif %}
-                </div>
-
-
-                    <div class="card-body">
-                        <p><strong>Latitude:</strong> {{ inc.lat }}</p>
-                        <p><strong>Longitude:</strong> {{ inc.lng }}</p>
-                        <p><strong>Acceleration Magnitude:</strong> {{ "%.2f"|format(inc.accel_mag) }}</p>
-                        <p><strong>Speed:</strong> {{ inc.speed }}</p>
-                        <p><strong>Reported At:</strong> {{ inc.created_at }}</p>
-
-                        <a href="{{ url_for('case_detail', incident_id=inc._id) }}" class="btn view-btn">🔍 View Details</a>
-
-                        {% if inc.status_info %}
-                            {% if inc.status_info.status == 'accepted' %}
-                                {% if inc.status_info.hospital_name == hospital_name %}
-                                    <p class="case-status accepted">✅ Accepted by You</p>
-                                    <button class="btn cancel-btn" onclick="deleteCaseStatus('{{ inc._id }}')">🗑️ Delete Decision</button>
-                                {% else %}
-                                    <p class="case-status taken">🚫 Already accepted by another hospital</p>
-                                {% endif %}
-                            {% elif inc.status_info.status == 'rejected' %}
-                                <p class="case-status rejected">❌ Rejected by You</p>
-                                <button class="btn cancel-btn" onclick="deleteCaseStatus('{{ inc._id }}')">🗑️ Delete Decision</button>
-                            {% endif %}
-                        {% else %}
-                            <div class="case-actions">
-                                <button class="btn accept-btn" onclick="updateCaseStatus('{{ inc._id }}', 'accepted')">✅ Accept Case</button>
-                                <button class="btn reject-btn" onclick="updateCaseStatus('{{ inc._id }}', 'rejected')">❌ Reject Case</button>
-                            </div>
-                            <p class="case-status" id="status-{{ inc._id }}"></p>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endfor %}
-            {% else %}
-                <div class="no-cases">No incident cases reported yet.</div>
-            {% endif %}
-        </section>
-
-        <!-- Ambulances Section -->
-        <section id="ambulances" class="tab-section" style="display: none;">
-            <h2>🚐 Ambulance Management</h2>
-
-            <div class="ambulance-actions">
-                <button class="btn add-ambulance-btn" id="addAmbulanceBtn">➕ Add Ambulance</button>
-            </div>
-
-            <form id="addAmbulanceForm" class="ambulance-form" style="display: none;">
-                <input type="text" id="vehicle_number" placeholder="Vehicle Number" required>
-                <input type="text" id="driver_name" placeholder="Driver Name" required>
-                <input type="text" id="phone" placeholder="Driver Phone" required>
-                <button type="submit" class="btn save-btn">Save Ambulance</button>
-                <button type="button" class="btn cancel-btn" id="cancelAmbulanceBtn">Cancel</button>
-            </form>
-
-            <div id="ambulanceList" class="ambulance-list"></div>
-        </section>
-
-        <!-- Settings Section -->
-        <section id="settings" class="settings-section tab-section" style="display: none;">
-            <h2>⚙️ Settings</h2>
-
-            <div id="profileView" class="settings-form profile-view">
-                <p><strong>Hospital Name:</strong> {{ user.hospital_name }}</p>
-                <p><strong>Email:</strong> {{ user.email }}</p>
-                <p><strong>Phone:</strong> {{ user.get('phone', 'Not provided') }}</p>
-                <p><strong>Location:</strong> {{ user.get('location', 'Not provided') }}</p>
-
-                <div class="settings-buttons">
-                    <button id="editProfileBtn" class="btn edit-btn">✏️ Edit Profile</button>
-                </div>
-            </div>
-
-            <form id="editProfileForm" class="settings-form edit-profile-form" style="display: none;">
-                <label for="hospital_name">Hospital Name</label>
-                <input type="text" id="hospital_name" name="hospital_name" value="{{ user.hospital_name }}" required>
-
-                <label for="phone">Phone</label>
-                <input type="text" id="phone" name="phone" value="{{ user.get('phone', '') }}">
-
-                <label for="location">Location</label>
-                <input type="text" id="location" name="location" value="{{ user.get('location', '') }}">
-
-                <div class="settings-buttons">
-                    <button type="submit" class="btn save-btn">💾 Save Changes</button>
-                    <button type="button" class="btn cancel-btn" id="cancelEditBtn">Cancel</button>
-                </div>
-            </form>
-
-            <p id="updateMessage" class="update-message" style="display:none;"></p>
-        </section>
-    </main>
-
-    <!-- 🚑 Ambulance Assignment Popup -->
-    <div id="assignAmbulancePopup" class="popup-form" style="display: none;">
-        <div class="popup-content">
-            <h3>Assign Ambulance</h3>
-            <div id="ambulanceOptions">
-                <p>Loading available ambulances...</p>
-            </div>
-            <div class="form-actions">
-                <button class="btn secondary" onclick="closeAssignPopup()">Cancel</button>
-            </div>
-        </div>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="SwiftAid Logo" width="35">
+      SwiftAid
     </div>
+
+    <nav>
+      <a href="#dashboard" class="active">🏠 Dashboard</a>
+      <a href="#cases">🚑 Cases</a>
+      <a href="#ambulances">🚐 Ambulances</a>
+      <a href="#settings">⚙️ Settings</a>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <header class="main-header">
+      <h2>Incident Dashboard</h2>
+
+      <div class="profile-box">
+        <span id="hospitalName">{{ hospital_name }}</span>
+        <div class="dropdown" id="profileDropdown">
+          <button class="dropbtn"><i class="chevron">&#x25BC;</i></button>
+          <div class="dropdown-content" id="dropdownMenu">
+            <a href="#" id="profileLink">Profile</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Dashboard Stats -->
+    <section id="dashboard" class="tab-section">
+      <section id="stats">
+        <div class="stat-box">
+          <span>{{ active_cases }}</span>
+          <p>Active Cases</p>
+        </div>
+        <div class="stat-box">
+          <span>{{ accepted_cases }}</span>
+          <p>Accepted Cases</p>
+        </div>
+        <div class="stat-box">
+          <span>{{ available_ambulances }}</span>
+          <p>Available Ambulances</p>
+        </div>
+        <div class="stat-box">
+          <span>{{ resolved_cases }}</span>
+          <p>Resolved Cases</p>
+        </div>
+      </section>
+
+      <div class="map-container">
+        <div id="map" class="map-placeholder"></div>
+      </div>
+    </section>
+
+    <!-- Reported Cases -->
+    <section id="cases" class="cases-section tab-section" style="display: none;">
+      <h2>🚑 Reported Cases</h2>
+
+      {% if incidents %}
+        {% for inc in incidents %}
+          <div class="card" id="case-{{ inc._id }}">
+            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+              <h3>📍 {{ inc.user_email }}</h3>
+              {% if inc.status_info and inc.status_info.hospital_name == hospital_name %}
+                <button class="btn clear-btn" onclick="clearIncident('{{ inc._id }}')">🧹 Clear Case</button>
+              {% endif %}
+            </div>
+
+            <div class="card-body">
+              <p><strong>Latitude:</strong> {{ inc.lat }}</p>
+              <p><strong>Longitude:</strong> {{ inc.lng }}</p>
+              <p><strong>Acceleration Magnitude:</strong> {{ "%.2f"|format(inc.accel_mag) }}</p>
+              <p><strong>Speed:</strong> {{ inc.speed }}</p>
+              <p><strong>Reported At:</strong> {{ inc.created_at }}</p>
+
+              <a href="{{ url_for('case_detail', incident_id=inc._id) }}" class="btn view-btn">🔍 View Details</a>
+
+              {% if inc.status_info %}
+                {% if inc.status_info.status == 'accepted' and inc.status_info.hospital_name == hospital_name %}
+                  <p class="case-status accepted">✅ Accepted by You</p>
+                  <button class="btn reject-btn" onclick="updateCaseStatus('{{ inc._id }}', 'rejected')">❌ Reject Case</button>
+                {% elif inc.status_info.status == 'rejected' and inc.status_info.hospital_name == hospital_name %}
+                  <p class="case-status rejected">❌ Rejected by You</p>
+                  <button class="btn accept-btn" onclick="updateCaseStatus('{{ inc._id }}', 'accepted')">✅ Accept Case</button>
+                {% else %}
+                  <p class="case-status taken">🚫 Taken by another hospital</p>
+                {% endif %}
+              {% else %}
+                <div class="case-actions">
+                  <button class="btn accept-btn" onclick="updateCaseStatus('{{ inc._id }}', 'accepted')">✅ Accept Case</button>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="no-cases">No incident cases reported yet.</div>
+      {% endif %}
+    </section>
+
+    <!-- Ambulances Section -->
+    <section id="ambulances" class="tab-section" style="display: none;">
+      <h2>🚐 Ambulance Management</h2>
+
+      <div class="ambulance-actions">
+        <button class="btn add-ambulance-btn" id="addAmbulanceBtn">➕ Add Ambulance</button>
+      </div>
+
+      <form id="addAmbulanceForm" class="ambulance-form" style="display: none;">
+        <input type="text" id="vehicle_number" placeholder="Vehicle Number" required>
+        <input type="text" id="driver_name" placeholder="Driver Name" required>
+        <input type="text" id="phone" placeholder="Driver Phone" required>
+        <button type="submit" class="btn save-btn">Save Ambulance</button>
+        <button type="button" class="btn cancel-btn" id="cancelAmbulanceBtn">Cancel</button>
+      </form>
+
+      <div id="ambulanceList" class="ambulance-list"></div>
+    </section>
+
+    <!-- Settings Section -->
+    <section id="settings" class="settings-section tab-section" style="display: none;">
+      <h2>⚙️ Settings</h2>
+
+      <div id="profileView" class="settings-form profile-view">
+        <p><strong>Hospital Name:</strong> {{ user.hospital_name }}</p>
+        <p><strong>Email:</strong> {{ user.email }}</p>
+        <p><strong>Phone:</strong> {{ user.get('phone', 'Not provided') }}</p>
+        <p><strong>Location:</strong> {{ user.get('location', 'Not provided') }}</p>
+
+        <div class="settings-buttons">
+          <button id="editProfileBtn" class="btn edit-btn">✏️ Edit Profile</button>
+        </div>
+      </div>
+
+      <form id="editProfileForm" class="settings-form edit-profile-form" style="display: none;">
+        <label for="hospital_name">Hospital Name</label>
+        <input type="text" id="hospital_name" name="hospital_name" value="{{ user.hospital_name }}" required>
+
+        <label for="phone">Phone</label>
+        <input type="text" id="phone" name="phone" value="{{ user.get('phone', '') }}">
+
+        <label for="location">Location</label>
+        <input type="text" id="location" name="location" value="{{ user.get('location', '') }}">
+
+        <div class="settings-buttons">
+          <button type="submit" class="btn save-btn">💾 Save Changes</button>
+          <button type="button" class="btn cancel-btn" id="cancelEditBtn">Cancel</button>
+        </div>
+      </form>
+
+      <p id="updateMessage" class="update-message" style="display:none;"></p>
+    </section>
+  </main>
+
+  <!-- Ambulance Assignment Popup -->
+  <div id="assignAmbulancePopup" class="popup-form" style="display: none;">
+    <div class="popup-content">
+      <h3>Assign Ambulance</h3>
+      <div id="ambulanceOptions"><p>Loading available ambulances...</p></div>
+      <div class="form-actions">
+        <button class="btn secondary" onclick="closeAssignPopup()">Cancel</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
