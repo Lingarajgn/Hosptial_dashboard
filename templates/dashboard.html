@@ -27,7 +27,9 @@
       <a href="#dashboard" class="active">🏠 Dashboard</a>
       <a href="#cases">🚑 Cases</a>
       <a href="#ambulances">🚐 Ambulances</a>
+        <a href="#resolved-cases">🩺 Resolved Cases</a>
       <a href="#settings">⚙️ Settings</a>
+
     </nav>
   </aside>
 
@@ -130,8 +132,9 @@
 
       <form id="addAmbulanceForm" class="ambulance-form" style="display: none;">
         <input type="text" id="vehicle_number" placeholder="Vehicle Number" required>
-        <input type="text" id="driver_name" placeholder="Driver Name" required>
-        <input type="text" id="phone" placeholder="Driver Phone" required>
+        <input type="text" id="driver_name" placeholder="Driver Name" pattern="[A-Za-z ]+" title="Only letters and spaces allowed" required>
+        <input type="tel" id="phone" placeholder="Driver Phone" pattern="[0-9]{10}" title="10-digit phone number" required>
+
         <button type="submit" class="btn save-btn">Save Ambulance</button>
         <button type="button" class="btn cancel-btn" id="cancelAmbulanceBtn">Cancel</button>
       </form>
@@ -172,6 +175,14 @@
 
       <p id="updateMessage" class="update-message" style="display:none;"></p>
     </section>
+      <!-- Resolved Cases Section -->
+    <section id="resolved-cases" class="tab-section" style="display:none;">
+      <h2>🩺 Resolved Cases</h2>
+      <div id="resolvedCasesList" class="resolved-cases-list">
+        <p>Loading resolved cases...</p>
+      </div>
+    </section>
+
   </main>
 
   <!-- Ambulance Assignment Popup -->

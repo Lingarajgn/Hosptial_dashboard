@@ -1,5 +1,5 @@
 // ==============================
-// SwiftAid Dashboard Script
+// SwiftAid Dashboard Script (Full Fixed Version)
 // ==============================
 document.addEventListener("DOMContentLoaded", () => {
     // ===== Dropdown Toggle =====
@@ -120,9 +120,27 @@ document.addEventListener("DOMContentLoaded", () => {
     if (addAmbulanceForm) {
         addAmbulanceForm.addEventListener("submit", async (e) => {
             e.preventDefault();
-            const vehicle_number = document.getElementById("vehicle_number").value;
-            const driver_name = document.getElementById("driver_name").value;
-            const phone = document.getElementById("phone").value;
+            const vehicle_number = document.getElementById("vehicle_number").value.trim();
+            const driver_name = document.getElementById("driver_name").value.trim();
+            const phone = document.getElementById("phone").value.trim();
+
+            const namePattern = /^[A-Za-z ]+$/;
+            const phonePattern = /^[0-9]{10}$/;
+
+            if (!vehicle_number || !driver_name || !phone) {
+                alert("All fields are required.");
+                return;
+            }
+
+            if (!namePattern.test(driver_name)) {
+                alert("Invalid driver name. Only letters and spaces allowed.");
+                return;
+            }
+
+            if (!phonePattern.test(phone)) {
+                alert("Invalid phone number. Must be 10 digits.");
+                return;
+            }
 
             const response = await fetch("/add_ambulance", {
                 method: "POST",
@@ -181,9 +199,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             </span>
                         </p>
                         ${actionButton}
-                    </div>
-                `;
-
+                    </div>`;
             });
         } else {
             ambulanceList.innerHTML = "<p>No ambulances added yet.</p>";
@@ -212,16 +228,63 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             alert(result.message);
-
-            // ✅ Reload ambulance list cleanly to reflect update
             await loadAmbulances();
-
         } catch (err) {
             console.error("Error updating ambulance status:", err);
             alert("Failed to update status. Please try again.");
         }
     };
 
+    // ==============================
+    // 🩺 RESOLVED CASES MANAGEMENT
+    // ==============================
+    async function loadResolvedCases() {
+        const res = await fetch("/resolved_cases");
+        const data = await res.json();
+        const resolvedList = document.getElementById("resolvedCasesList");
+
+        resolvedList.innerHTML = "";
+
+        if (data.success && data.resolved_cases.length > 0) {
+            data.resolved_cases.forEach(caseItem => {
+                resolvedList.innerHTML += `
+                    <div class="card">
+                        <h3>📋 Case ID: ${caseItem.incident_id}</h3>
+                        <p><strong>Hospital:</strong> ${caseItem.hospital_name}</p>
+                        <p><strong>User Email:</strong> ${caseItem.user_email}</p>
+                        <p><strong>Driver:</strong> ${caseItem.driver_name || "N/A"}</p>
+                        <p><strong>Vehicle:</strong> ${caseItem.vehicle_number || "N/A"}</p>
+                        <p><strong>Resolved At:</strong> ${caseItem.resolved_at}</p>
+                        <div class="case-actions">
+                            <button class="btn" style="background-color:#dc3545;color:white;" onclick="deleteResolvedCase('${caseItem._id}')">🗑️ Delete</button>
+                            <button class="btn" style="background-color:#17a2b8;color:white;" onclick="downloadResolvedPDF('${caseItem._id}')">📄 Download PDF</button>
+                        </div>
+                    </div>`;
+            });
+        } else {
+            resolvedList.innerHTML = "<p>No resolved cases yet.</p>";
+        }
+    }
+    window.loadResolvedCases = loadResolvedCases;
+
+    window.deleteResolvedCase = async function (caseId) {
+        if (!confirm("Are you sure you want to delete this resolved case?")) return;
+        const res = await fetch("/delete_resolved_case", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ case_id: caseId })
+        });
+        const data = await res.json();
+        alert(data.message);
+        if (data.success) loadResolvedCases();
+    };
+
+    window.downloadResolvedPDF = function (caseId) {
+        window.location.href = `/download_resolved_case/${caseId}`;
+    };
+
+    const resolvedTab = document.querySelector('a[href="#resolved-cases"]');
+    if (resolvedTab) resolvedTab.addEventListener("click", loadResolvedCases);
 
     // ===== Profile Dropdown -> Settings =====
     const profileLink = document.getElementById("profileLink");
@@ -260,7 +323,6 @@ async function updateCaseStatus(incidentId, status) {
     alert(data.message);
     if (data.success) location.reload();
 }
-
 
 // 🧹 CLEAR INCIDENT
 async function clearIncident(incidentId) {

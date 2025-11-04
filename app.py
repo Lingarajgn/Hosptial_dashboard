@@ -5,6 +5,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from config import MONGO_URI
 from datetime import datetime
 import re
+from io import BytesIO
+from flask import send_file
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
@@ -250,8 +254,108 @@ def get_ambulances():
 
     return jsonify({"success": True, "ambulances": ambs})
 
+# -----------------------------
+# GET RESOLVED CASES
+# -----------------------------
+@app.route("/resolved_cases", methods=["GET"])
+def get_resolved_cases():
+    if "email" not in session:
+        return jsonify({"success": False, "message": "Not logged in"}), 403
 
+    hospital_name = session.get("hospital_name")
+    cases = list(resolved_cases_collection.find({"hospital_name": hospital_name}))
+    for c in cases:
+        c["_id"] = str(c["_id"])
+    return jsonify({"success": True, "resolved_cases": cases})
 
+# -----------------------------
+# DELETE RESOLVED CASE
+# -----------------------------
+@app.route("/delete_resolved_case", methods=["POST"])
+def delete_resolved_case():
+    if "email" not in session:
+        return jsonify({"success": False, "message": "Not logged in"}), 403
+
+    data = request.get_json()
+    case_id = data.get("case_id")
+
+    if not case_id:
+        return jsonify({"success": False, "message": "Missing case ID"}), 400
+
+    try:
+        result = resolved_cases_collection.delete_one({"_id": ObjectId(case_id)})
+        if result.deleted_count == 0:
+            return jsonify({"success": False, "message": "Case not found"}), 404
+        return jsonify({"success": True, "message": "Resolved case deleted successfully!"})
+    except Exception as e:
+        print("❌ delete_resolved_case error:", e)
+        return jsonify({"success": False, "message": "Error deleting resolved case"}), 500
+
+# -----------------------------
+# DOWNLOAD RESOLVED CASE AS PDF
+# -----------------------------
+@app.route("/download_resolved_case/<case_id>", methods=["GET"])
+def download_resolved_case(case_id):
+    """Generate a professional PDF report for resolved case."""
+    if "email" not in session:
+        return redirect(url_for("login"))
+
+    case = resolved_cases_collection.find_one({"_id": ObjectId(case_id)})
+    if not case:
+        return "Case not found", 404
+
+    buffer = BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+
+    # ===== Header Section =====
+    pdf.setFont("Helvetica-Bold", 20)
+    pdf.setFillColorRGB(0.2, 0.4, 0.6)
+    pdf.drawString(180, 770, "🏥 SwiftAid Hospital Report")
+
+    pdf.setFillColorRGB(0, 0, 0)
+    pdf.setFont("Helvetica", 12)
+    pdf.drawString(50, 745, f"Generated On: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC")
+    pdf.line(50, 740, 550, 740)
+
+    # ===== Case Information =====
+    pdf.setFont("Helvetica-Bold", 14)
+    pdf.drawString(50, 715, "🩺 Resolved Case Details:")
+    pdf.setFont("Helvetica", 12)
+
+    y = 690
+    field_labels = {
+        "incident_id": "Incident ID",
+        "hospital_name": "Hospital Name",
+        "user_email": "User Email",
+        "driver_name": "Driver Name",
+        "vehicle_number": "Vehicle Number",
+        "resolved_at": "Resolved At"
+    }
+
+    for key, label in field_labels.items():
+        value = case.get(key, "N/A")
+        pdf.setFont("Helvetica-Bold", 12)
+        pdf.drawString(60, y, f"{label}:")
+        pdf.setFont("Helvetica", 12)
+        pdf.drawString(200, y, str(value))
+        y -= 25
+
+    # ===== Footer =====
+    pdf.setFont("Helvetica-Oblique", 11)
+    pdf.setFillColorRGB(0.3, 0.3, 0.3)
+    pdf.drawString(50, 60, "SwiftAid Emergency Response System — Confidential Report")
+    pdf.drawString(50, 45, "For internal hospital use only. © 2025 SwiftAid")
+
+    pdf.save()
+    buffer.seek(0)
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=f"resolved_case_{case_id}.pdf",
+        mimetype="application/pdf"
+    )
 
 # -----------------------------
 # Add Ambulance
@@ -262,13 +366,22 @@ def add_ambulance():
         return jsonify({"success": False, "message": "Not logged in"}), 403
 
     data = request.get_json()
-    vehicle_number = data.get("vehicle_number")
-    driver_name = data.get("driver_name")
-    phone = data.get("phone")
+    vehicle_number = data.get("vehicle_number", "").strip()
+    driver_name = data.get("driver_name", "").strip()
+    phone = data.get("phone", "").strip()
     hospital_name = session.get("hospital_name")
 
-    if not vehicle_number or not driver_name:
-        return jsonify({"success": False, "message": "Missing required fields"}), 400
+    # ✅ Validation checks
+    if not vehicle_number or not driver_name or not phone:
+        return jsonify({"success": False, "message": "All fields are required"}), 400
+
+    # Name should only contain letters and spaces
+    if not re.match(r"^[A-Za-z ]+$", driver_name):
+        return jsonify({"success": False, "message": "Invalid driver name. Only letters and spaces allowed."}), 400
+
+    # Phone must be exactly 10 digits
+    if not re.match(r"^[0-9]{10}$", phone):
+        return jsonify({"success": False, "message": "Invalid phone number. Must be 10 digits."}), 400
 
     ambulances_collection.insert_one({
         "vehicle_number": vehicle_number,

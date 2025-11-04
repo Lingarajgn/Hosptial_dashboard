@@ -526,3 +526,8 @@ body {
   transform: translateY(-1px);
 }
 
+.resolved-cases-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
