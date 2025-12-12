@@ -1,60 +1,600 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hospital Registration | SwiftAid</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
-</head>
-<body class="auth-body">
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/auth.css') }}"
+    />
+    <!-- Add Font Awesome for icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body class="auth-body">
     <div class="auth-container">
-        <div class="auth-box">
-            <h2>🏥 Register Hospital</h2>
+      <div class="auth-box">
+        <h2>🏥 Register Hospital</h2>
+        <p class="subtitle">Join SwiftAid for emergency healthcare services</p>
 
-            {% if error %}
-                <div class="alert error">{{ error }}</div>
-            {% elif success %}
-                <div class="alert success">{{ success }}</div>
-            {% endif %}
-
-            <form action="{{ url_for('register') }}" method="POST">
-                <div class="input-group">
-                    <label for="hospital_name">Hospital Name</label>
-                    <input type="text" id="hospital_name" name="hospital_name" placeholder="Enter hospital name" required>
-                </div>
-
-                <div class="input-group">
-                    <label for="email">Hospital Email</label>
-                    <input type="email" id="email" name="email" placeholder="Enter hospital email" required>
-                </div>
-
-                <div class="input-group">
-                    <label for="phone">Hospital Phone</label>
-                    <input type="tel" id="phone" name="phone" placeholder="Enter hospital phone number" pattern="[0-9]{10}" required>
-                </div>
-
-                <div class="input-group">
-                    <label for="location">Hospital Location</label>
-                    <input type="text" id="location" name="location" placeholder="City, State" required>
-                </div>
-
-                <div class="input-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" placeholder="Enter password" required>
-                </div>
-
-                <div class="input-group">
-                    <label for="confirm_password">Confirm Password</label>
-                    <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter password" required>
-                </div>
-
-                <button type="submit" class="auth-btn">Register</button>
-            </form>
-
-            <p class="switch-text">
-                Already have an account? <a href="{{ url_for('login') }}">Log in</a>
-            </p>
+        {% if error %}
+        <div class="alert error">
+          <div class="alert-text">{{ error }}</div>
+          <div class="alert-help">
+            If this continues, please check your connection or try again later.
+          </div>
         </div>
+        {% elif success %}
+        <div class="alert success">
+          <div class="alert-text">{{ success }}</div>
+        </div>
+        {% endif %}
+
+        <form
+          action="{{ url_for('register') }}"
+          method="POST"
+          id="registrationForm"
+        >
+          <!-- Hospital Name with Autocomplete -->
+          <div class="input-group hospital-autocomplete">
+            <label for="hospital_name">
+              Hospital Name
+              <span class="search-info">
+                <i class="fas fa-info-circle"></i>
+                Start typing to search real hospitals
+              </span>
+            </label>
+            <div class="hospital-input-container">
+              <input
+                type="text"
+                id="hospital_name"
+                name="hospital_name"
+                placeholder="Start typing hospital name..."
+                autocomplete="off"
+                required
+                aria-describedby="hospitalHelp"
+              />
+              <div class="input-icon">
+                <i class="fas fa-search"></i>
+              </div>
+              <div class="hospital-suggestions" id="hospitalSuggestions"></div>
+            </div>
+            <div id="hospitalHelp" class="contact-help-text">
+              <i class="fas fa-database"></i>
+              Hybrid Search: Live Maps + Karnataka Database (25+ hospitals)
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="email">Hospital Email</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              placeholder="Enter hospital email"
+              required
+            />
+          </div>
+
+          <div class="input-group">
+            <label for="phone">Hospital Phone</label>
+            <div class="contact-input-container">
+              <div class="country-select-wrapper">
+                <select
+                  id="country_code"
+                  name="country_code"
+                  class="country-code-select"
+                >
+                  <option value="+1" data-flag="🇺🇸">+1 (US)</option>
+                  <option value="+1" data-flag="🇨🇦">+1 (CA)</option>
+                  <option value="+44" data-flag="🇬🇧">+44 (UK)</option>
+                  <option value="+61" data-flag="🇦🇺">+61 (AU)</option>
+                  <option value="+49" data-flag="🇩🇪">+49 (DE)</option>
+                  <option value="+33" data-flag="🇫🇷">+33 (FR)</option>
+                  <option value="+39" data-flag="🇮🇹">+39 (IT)</option>
+                  <option value="+34" data-flag="🇪🇸">+34 (ES)</option>
+                  <option value="+81" data-flag="🇯🇵">+81 (JP)</option>
+                  <option value="+86" data-flag="🇨🇳">+86 (CN)</option>
+                  <option value="+91" data-flag="🇮🇳" selected>+91 (IN)</option>
+                  <option value="+971" data-flag="🇦🇪">+971 (AE)</option>
+                  <option value="+65" data-flag="🇸🇬">+65 (SG)</option>
+                  <option value="+60" data-flag="🇲🇾">+60 (MY)</option>
+                  <option value="+66" data-flag="🇹🇭">+66 (TH)</option>
+                  <option value="+84" data-flag="🇻🇳">+84 (VN)</option>
+                  <option value="+62" data-flag="🇮🇩">+62 (ID)</option>
+                  <option value="+63" data-flag="🇵🇭">+63 (PH)</option>
+                  <option value="+82" data-flag="🇰🇷">+82 (KR)</option>
+                  <option value="+90" data-flag="🇹🇷">+90 (TR)</option>
+                  <option value="+7" data-flag="🇷🇺">+7 (RU)</option>
+                  <option value="+55" data-flag="🇧🇷">+55 (BR)</option>
+                  <option value="+52" data-flag="🇲🇽">+52 (MX)</option>
+                  <option value="+54" data-flag="🇦🇷">+54 (AR)</option>
+                  <option value="+27" data-flag="🇿🇦">+27 (ZA)</option>
+                </select>
+                <span class="country-flag" id="selected-flag">🇮🇳</span>
+              </div>
+              <input
+                type="tel"
+                id="phone"
+                name="phone"
+                placeholder="Enter phone number"
+                class="contact-input"
+                required
+              />
+            </div>
+            <div class="contact-help-text">
+              <i class="fas fa-mobile-alt"></i>
+              Enter your phone number without country code
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="location">
+              Hospital Location
+              <span class="auto-fill-info">
+                <i class="fas fa-magic"></i>
+                Auto-filled when you select a hospital
+              </span>
+            </label>
+            <input
+              type="text"
+              id="location"
+              name="location"
+              placeholder="City, State, Country"
+              required
+            />
+          </div>
+
+          <div class="input-group">
+            <div class="password-header">
+              <label for="password">Password</label>
+              <button
+                type="button"
+                class="info-button"
+                onclick="togglePasswordInfo()"
+              >
+                <i class="fas fa-info"></i>
+              </button>
+            </div>
+            <div class="input-with-toggle">
+              <input
+                type="password"
+                id="password"
+                name="password"
+                placeholder="Enter password"
+                class="password-input"
+                required
+                oninput="validatePassword()"
+              />
+              <button
+                type="button"
+                class="toggle-btn"
+                onclick="togglePasswordVisibility('password', this)"
+              >
+                <i class="fas fa-eye"></i> SHOW
+              </button>
+            </div>
+          </div>
+
+          <div id="passwordInfo" class="info-modal" style="display: none">
+            <div class="info-title">
+              <i class="fas fa-shield-alt"></i>
+              Password Requirements:
+            </div>
+            <div class="info-description">
+              • At least 8 characters<br />
+              • 1 uppercase letter (A-Z)<br />
+              • 1 lowercase letter (a-z)<br />
+              • 1 number (0-9)<br />
+              • 1 symbol (_, #, @, $, -, .)
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label for="confirm_password">Confirm Password</label>
+            <div class="input-with-toggle">
+              <input
+                type="password"
+                id="confirm_password"
+                name="confirm_password"
+                placeholder="Re-enter password"
+                class="password-input"
+                required
+              />
+              <button
+                type="button"
+                class="toggle-btn"
+                onclick="togglePasswordVisibility('confirm_password', this)"
+              >
+                <i class="fas fa-eye"></i> SHOW
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="auth-btn" id="submitBtn">
+            <i class="fas fa-hospital"></i>
+            Register Hospital
+          </button>
+        </form>
+
+        <div class="switch-text">
+          Already have an account? <a href="{{ url_for('login') }}">Log in</a>
+        </div>
+
+        <!-- API Status Indicator -->
+        <div class="api-status" id="apiStatus">
+          <i class="fas fa-globe"></i>
+          <span>Hybrid Search: Live Maps + Karnataka Database</span>
+        </div>
+      </div>
     </div>
-</body>
+
+    <script>
+      // Configuration
+      const CONFIG = {
+        MIN_SEARCH_LENGTH: 2,
+        MAX_SUGGESTIONS: 8,
+        DEBOUNCE_DELAY: 400,
+        API_ENDPOINT: "/api/hospitals/search",
+      };
+
+      let searchTimeout;
+      let currentSearchQuery = "";
+      let abortController = null;
+
+      // DOM Elements
+      const hospitalInput = document.getElementById("hospital_name");
+      const locationInput = document.getElementById("location");
+      const suggestionsContainer = document.getElementById(
+        "hospitalSuggestions"
+      );
+      const apiStatus = document.getElementById("apiStatus");
+
+      // Real-time hospital search with debouncing
+      hospitalInput.addEventListener("input", async function (e) {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+        currentSearchQuery = query;
+
+        if (query.length < CONFIG.MIN_SEARCH_LENGTH) {
+          hideSuggestions();
+          updateApiStatus("idle");
+          return;
+        }
+
+        showLoading();
+        updateApiStatus("searching");
+
+        searchTimeout = setTimeout(async () => {
+          if (currentSearchQuery === query) {
+            try {
+              const suggestions = await searchHospitalsRealTime(query);
+              showSuggestions(suggestions);
+              updateApiStatus(
+                suggestions.length > 0 ? "success" : "no-results",
+                suggestions
+              );
+            } catch (error) {
+              console.error("Search error:", error);
+              showError(
+                "Search temporarily unavailable. Using Karnataka database."
+              );
+              updateApiStatus("error");
+            }
+          }
+        }, CONFIG.DEBOUNCE_DELAY);
+      });
+
+      // Real-time hospital search function
+      async function searchHospitalsRealTime(query) {
+        if (!query || query.length < CONFIG.MIN_SEARCH_LENGTH) {
+          return [];
+        }
+
+        // Cancel previous request if still pending
+        if (abortController) {
+          abortController.abort();
+        }
+
+        abortController = new AbortController();
+
+        try {
+          const response = await fetch(
+            `${CONFIG.API_ENDPOINT}?q=${encodeURIComponent(query)}&limit=${
+              CONFIG.MAX_SUGGESTIONS
+            }`,
+            {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              signal: abortController.signal,
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error(`API returned ${response.status}`);
+          }
+
+          const data = await response.json();
+          return data.hospitals || [];
+        } catch (error) {
+          if (error.name === "AbortError") {
+            return [];
+          }
+          throw error;
+        }
+      }
+
+      function showLoading() {
+        suggestionsContainer.innerHTML = `
+                <div class="loading-indicator">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    Searching hybrid database...
+                </div>
+            `;
+        suggestionsContainer.style.display = "block";
+      }
+
+      function showSuggestions(suggestions) {
+        if (suggestions.length === 0) {
+          suggestionsContainer.innerHTML = `
+                    <div class="no-suggestions">
+                        <i class="fas fa-search"></i>
+                        <div>
+                            <strong>No hospitals found</strong>
+                            <div class="suggestion-help">Try a different name or enter manually</div>
+                        </div>
+                    </div>
+                `;
+        } else {
+          suggestionsContainer.innerHTML = suggestions
+            .map(
+              (hospital) => `
+                    <div class="hospital-suggestion" onclick="selectHospital('${escapeString(
+                      hospital.name
+                    )}', '${escapeString(hospital.location)}')">
+                        <div class="suggestion-content">
+                            <div class="hospital-name">
+                                <i class="fas fa-hospital"></i>
+                                ${hospital.name}
+                            </div>
+                            <div class="hospital-location">
+                                <i class="fas fa-map-marker-alt"></i>
+                                ${hospital.location}
+                            </div>
+                            <div class="hospital-source">
+                                ${getSourceBadge(hospital.type)}
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right suggestion-arrow"></i>
+                    </div>
+                `
+            )
+            .join("");
+        }
+
+        suggestionsContainer.style.display = "block";
+      }
+
+      function getSourceBadge(type) {
+        const badges = {
+          registered:
+            '<span class="source-badge registered"><i class="fas fa-check-circle"></i> Registered</span>',
+          osm: '<span class="source-badge osm"><i class="fas fa-globe"></i> Live Map</span>',
+          karnataka:
+            '<span class="source-badge karnataka"><i class="fas fa-map-marker-alt"></i> Karnataka DB</span>',
+          local:
+            '<span class="source-badge local"><i class="fas fa-database"></i> Local DB</span>',
+        };
+        return (
+          badges[type] || '<span class="source-badge unknown">Database</span>'
+        );
+      }
+
+      function showError(message) {
+        suggestionsContainer.innerHTML = `
+                <div class="error-suggestion">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>Search Error</strong>
+                        <div class="suggestion-help">${message}</div>
+                    </div>
+                </div>
+            `;
+        suggestionsContainer.style.display = "block";
+      }
+
+      function hideSuggestions() {
+        suggestionsContainer.style.display = "none";
+      }
+
+      function selectHospital(name, location) {
+        hospitalInput.value = name;
+        locationInput.value = location;
+        hideSuggestions();
+        updateApiStatus("selected");
+
+        // Add visual confirmation
+        hospitalInput.classList.add("selected");
+        setTimeout(() => hospitalInput.classList.remove("selected"), 2000);
+      }
+
+      function escapeString(str) {
+        return str.replace(/'/g, "\\'").replace(/"/g, '\\"');
+      }
+
+      function updateApiStatus(status, results = []) {
+        const osmCount = results.filter((h) => h.type === "osm").length;
+        const karnatakaCount = results.filter(
+          (h) => h.type === "karnataka"
+        ).length;
+        const registeredCount = results.filter(
+          (h) => h.type === "registered"
+        ).length;
+
+        const statusConfig = {
+          idle: {
+            icon: "fa-globe",
+            text: "Hybrid Search: Live Maps + Karnataka Database",
+            color: "#28a745",
+          },
+          searching: {
+            icon: "fa-spinner fa-spin",
+            text: "Searching hospitals...",
+            color: "#ffc107",
+          },
+          success: {
+            icon: "fa-check-circle",
+            text: `Found ${results.length} hospitals (${osmCount} live, ${karnatakaCount} Karnataka, ${registeredCount} registered)`,
+            color: "#28a745",
+          },
+          "no-results": {
+            icon: "fa-search",
+            text: "No hospitals found - try different name",
+            color: "#6c757d",
+          },
+          error: {
+            icon: "fa-database",
+            text: "Using Karnataka Database Only",
+            color: "#dc3545",
+          },
+          selected: {
+            icon: "fa-check-circle",
+            text: "Hospital selected ✓",
+            color: "#28a745",
+          },
+        };
+
+        const config = statusConfig[status] || statusConfig.idle;
+        apiStatus.innerHTML = `<i class="fas ${config.icon}"></i><span>${config.text}</span>`;
+        apiStatus.style.color = config.color;
+      }
+
+      // Hide suggestions when clicking outside
+      document.addEventListener("click", function (e) {
+        if (!e.target.closest(".hospital-autocomplete")) {
+          hideSuggestions();
+        }
+      });
+
+      // Keyboard navigation for suggestions
+      hospitalInput.addEventListener("keydown", function (e) {
+        const suggestions = suggestionsContainer.querySelectorAll(
+          ".hospital-suggestion"
+        );
+
+        if (
+          !suggestions.length ||
+          suggestionsContainer.style.display === "none"
+        )
+          return;
+
+        const activeSuggestion = suggestionsContainer.querySelector(
+          ".hospital-suggestion.active"
+        );
+        let index = Array.from(suggestions).indexOf(activeSuggestion);
+
+        switch (e.key) {
+          case "ArrowDown":
+            e.preventDefault();
+            index = index === -1 ? 0 : (index + 1) % suggestions.length;
+            break;
+          case "ArrowUp":
+            e.preventDefault();
+            index = index <= 0 ? suggestions.length - 1 : index - 1;
+            break;
+          case "Enter":
+            e.preventDefault();
+            if (activeSuggestion) {
+              activeSuggestion.click();
+            }
+            return;
+          case "Escape":
+            hideSuggestions();
+            return;
+          default:
+            return;
+        }
+
+        suggestions.forEach((s) => s.classList.remove("active"));
+        if (suggestions[index]) {
+          suggestions[index].classList.add("active");
+          suggestions[index].scrollIntoView({ block: "nearest" });
+        }
+      });
+
+      // Update flag when country selection changes
+      document
+        .getElementById("country_code")
+        .addEventListener("change", function (e) {
+          const selectedOption = this.options[this.selectedIndex];
+          const flag = selectedOption.getAttribute("data-flag");
+          document.getElementById("selected-flag").textContent = flag;
+        });
+
+      // Format phone number input
+      document.getElementById("phone").addEventListener("input", function (e) {
+        this.value = this.value.replace(/\D/g, "");
+      });
+
+      // Password visibility toggle
+      function togglePasswordVisibility(fieldId, button) {
+        const field = document.getElementById(fieldId);
+        const icon = button.querySelector("i");
+        if (field.type === "password") {
+          field.type = "text";
+          icon.className = "fas fa-eye-slash";
+          button.innerHTML = '<i class="fas fa-eye-slash"></i> HIDE';
+        } else {
+          field.type = "password";
+          icon.className = "fas fa-eye";
+          button.innerHTML = '<i class="fas fa-eye"></i> SHOW';
+        }
+      }
+
+      function togglePasswordInfo() {
+        const info = document.getElementById("passwordInfo");
+        info.style.display = info.style.display === "none" ? "block" : "none";
+      }
+
+      function validatePassword() {
+        // Add password validation logic here if needed
+      }
+
+      // Form submission handling
+      document
+        .getElementById("registrationForm")
+        .addEventListener("submit", function (e) {
+          const submitBtn = document.getElementById("submitBtn");
+          submitBtn.innerHTML =
+            '<i class="fas fa-spinner fa-spin"></i> Registering...';
+          submitBtn.disabled = true;
+        });
+
+      // Initialize
+      document.addEventListener("DOMContentLoaded", function () {
+        const countrySelect = document.getElementById("country_code");
+        const selectedOption =
+          countrySelect.options[countrySelect.selectedIndex];
+        const flag = selectedOption.getAttribute("data-flag");
+        document.getElementById("selected-flag").textContent = flag;
+
+        updateApiStatus("idle");
+      });
+
+      // Prevent form submission on Enter in hospital search
+      hospitalInput.addEventListener("keydown", function (e) {
+        if (
+          e.key === "Enter" &&
+          suggestionsContainer.style.display === "block"
+        ) {
+          e.preventDefault();
+        }
+      });
+    </script>
+  </body>
 </html>

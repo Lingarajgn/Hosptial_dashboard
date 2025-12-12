@@ -690,5 +690,333 @@ def update_profile():
         return jsonify({"success": False, "message": "Error updating profile"}), 500
 
 
+def get_karnataka_hospital_database():
+    """Comprehensive Karnataka hospitals including Davanagere that OSM might miss"""
+    return [
+        # Critical hospitals that OSM often misses
+        {"name": "Manipal Hospital", "location": "Bangalore, Karnataka", "city": "Bangalore", "state": "Karnataka",
+         "type": "private"},
+        {"name": "Apollo Hospitals", "location": "Bangalore, Karnataka", "city": "Bangalore", "state": "Karnataka",
+         "type": "private"},
+        {"name": "Fortis Hospital", "location": "Bangalore, Karnataka", "city": "Bangalore", "state": "Karnataka",
+         "type": "private"},
+        {"name": "Narayana Health", "location": "Bangalore, Karnataka", "city": "Bangalore", "state": "Karnataka",
+         "type": "private"},
+        {"name": "Columbia Asia Hospital", "location": "Bangalore, Karnataka", "city": "Bangalore",
+         "state": "Karnataka", "type": "private"},
+
+        # Government hospitals
+        {"name": "Victoria Hospital", "location": "Bangalore, Karnataka", "city": "Bangalore", "state": "Karnataka",
+         "type": "government"},
+        {"name": "Bowring Hospital", "location": "Bangalore, Karnataka", "city": "Bangalore", "state": "Karnataka",
+         "type": "government"},
+        {"name": "Bangalore Medical College", "location": "Bangalore, Karnataka", "city": "Bangalore",
+         "state": "Karnataka", "type": "government"},
+
+        # Major cities across Karnataka
+        {"name": "Apollo Hospital Mysore", "location": "Mysore, Karnataka", "city": "Mysore", "state": "Karnataka",
+         "type": "private"},
+        {"name": "JSS Hospital", "location": "Mysore, Karnataka", "city": "Mysore", "state": "Karnataka",
+         "type": "private"},
+        {"name": "KLE Hospital", "location": "Hubli, Karnataka", "city": "Hubli", "state": "Karnataka",
+         "type": "private"},
+        {"name": "KMC Hospital", "location": "Mangalore, Karnataka", "city": "Mangalore", "state": "Karnataka",
+         "type": "private"},
+        {"name": "AJ Hospital", "location": "Mangalore, Karnataka", "city": "Mangalore", "state": "Karnataka",
+         "type": "private"},
+
+        # DAVANAGERE HOSPITALS - Added as requested
+        {"name": "JJM Medical College Hospital", "location": "Davanagere, Karnataka", "city": "Davanagere",
+         "state": "Karnataka", "type": "private"},
+        {"name": "Chigateri General Hospital", "location": "Davanagere, Karnataka", "city": "Davanagere",
+         "state": "Karnataka", "type": "government"},
+        {"name": "Bapuji Hospital", "location": "Davanagere, Karnataka", "city": "Davanagere", "state": "Karnataka",
+         "type": "private"},
+        {"name": "SS Institute of Medical Sciences", "location": "Davanagere, Karnataka", "city": "Davanagere",
+         "state": "Karnataka", "type": "private"},
+        {"name": "District Hospital Davanagere", "location": "Davanagere, Karnataka", "city": "Davanagere",
+         "state": "Karnataka", "type": "government"},
+        {"name": "Sri Siddhartha Medical College", "location": "Davanagere, Karnataka", "city": "Davanagere",
+         "state": "Karnataka", "type": "private"},
+        {"name": "Ashoka Hospital", "location": "Davanagere, Karnataka", "city": "Davanagere", "state": "Karnataka",
+         "type": "private"},
+        {"name": "Kiran Hospital", "location": "Davanagere, Karnataka", "city": "Davanagere", "state": "Karnataka",
+         "type": "private"},
+        {"name": "Sagar Hospitals", "location": "Davanagere, Karnataka", "city": "Davanagere", "state": "Karnataka",
+         "type": "private"},
+        {"name": "Manjunatha Hospital", "location": "Davanagere, Karnataka", "city": "Davanagere", "state": "Karnataka",
+         "type": "private"},
+
+        # Specialized institutes
+        {"name": "NIMHANS", "location": "Bangalore, Karnataka", "city": "Bangalore", "state": "Karnataka",
+         "type": "government"},
+        {"name": "Kidwai Memorial Institute", "location": "Bangalore, Karnataka", "city": "Bangalore",
+         "state": "Karnataka", "type": "government"},
+        {"name": "Jayadeva Institute", "location": "Bangalore, Karnataka", "city": "Bangalore", "state": "Karnataka",
+         "type": "government"},
+
+        # Popular chains in Karnataka
+        {"name": "Sakra World Hospital", "location": "Bangalore, Karnataka", "city": "Bangalore", "state": "Karnataka",
+         "type": "private"},
+        {"name": "BGS Global Hospital", "location": "Bangalore, Karnataka", "city": "Bangalore", "state": "Karnataka",
+         "type": "private"},
+        {"name": "MS Ramaiah Hospital", "location": "Bangalore, Karnataka", "city": "Bangalore", "state": "Karnataka",
+         "type": "private"},
+
+        # More Bangalore hospitals
+        {"name": "St. John's Medical College Hospital", "location": "Bangalore, Karnataka", "city": "Bangalore",
+         "state": "Karnataka", "type": "private"},
+        {"name": "Vydehi Hospital", "location": "Whitefield, Bangalore", "city": "Bangalore", "state": "Karnataka",
+         "type": "private"},
+        {"name": "People Tree Hospitals", "location": "Bangalore, Karnataka", "city": "Bangalore", "state": "Karnataka",
+         "type": "private"},
+
+        # More major Karnataka cities
+        {"name": "District Hospital", "location": "Shimoga, Karnataka", "city": "Shimoga", "state": "Karnataka",
+         "type": "government"},
+        {"name": "McGann Hospital", "location": "Shimoga, Karnataka", "city": "Shimoga", "state": "Karnataka",
+         "type": "government"},
+        {"name": "District Hospital", "location": "Bellary, Karnataka", "city": "Bellary", "state": "Karnataka",
+         "type": "government"},
+        {"name": "District Hospital", "location": "Belgaum, Karnataka", "city": "Belgaum", "state": "Karnataka",
+         "type": "government"},
+        {"name": "District Hospital", "location": "Gulbarga, Karnataka", "city": "Gulbarga", "state": "Karnataka",
+         "type": "government"},
+    ]
+
+
+def search_hospitals_hybrid(query, limit=10):
+    """
+    Hybrid search: OpenStreetMap (primary) + Karnataka Local DB (fallback)
+    Returns combined results with source information
+    """
+    all_hospitals = []
+
+    try:
+        # 1. First try OpenStreetMap API (real-time data)
+        osm_hospitals = search_hospitals_nominatim(query, limit=limit)
+        all_hospitals.extend(osm_hospitals)
+
+        print(f"🔍 OSM found {len(osm_hospitals)} hospitals for query: '{query}'")
+
+        # 2. If OSM returns few results, add local Karnataka hospitals
+        if len(all_hospitals) < 5:
+            local_hospitals = search_karnataka_hospitals_local(query, limit - len(all_hospitals))
+
+            # Avoid duplicates
+            existing_names = {h['name'].lower() for h in all_hospitals}
+            for hospital in local_hospitals:
+                if hospital['name'].lower() not in existing_names:
+                    all_hospitals.append({
+                        'name': hospital['name'],
+                        'location': hospital['location'],
+                        'type': 'karnataka'  # Mark as from local Karnataka DB
+                    })
+                    existing_names.add(hospital['name'].lower())
+
+            print(f"🏥 Local DB added {len(local_hospitals)} Karnataka hospitals")
+
+        # 3. Remove duplicates and limit results
+        unique_hospitals = []
+        seen_names = set()
+        for hospital in all_hospitals:
+            if hospital['name'] not in seen_names:
+                unique_hospitals.append(hospital)
+                seen_names.add(hospital['name'])
+
+        return unique_hospitals[:limit]
+
+    except Exception as e:
+        print(f"❌ Hybrid search error: {e}")
+        # Fallback to local only
+        return search_karnataka_hospitals_local(query, limit)
+
+
+def search_karnataka_hospitals_local(query, limit=8):
+    """Fast local search in Karnataka hospitals database"""
+    if not query or len(query) < 2:
+        return []
+
+    query = query.lower()
+    hospitals = get_karnataka_hospital_database()
+
+    # Smart matching - prioritize exact matches
+    exact_matches = []
+    partial_matches = []
+
+    for hospital in hospitals:
+        name_lower = hospital['name'].lower()
+        location_lower = hospital['location'].lower()
+        city_lower = hospital['city'].lower()
+
+        # Exact name match (highest priority)
+        if query in name_lower:
+            if name_lower.startswith(query):
+                exact_matches.insert(0, hospital)  # Beginning matches first
+            else:
+                exact_matches.append(hospital)
+        # Location or city match
+        elif query in location_lower or query in city_lower:
+            partial_matches.append(hospital)
+
+    return (exact_matches + partial_matches)[:limit]
+
+
+def search_hospitals_nominatim(query, country="India", limit=8):
+    """
+    Improved OpenStreetMap search with better hospital detection for Karnataka
+    """
+    try:
+        headers = {'User-Agent': USER_AGENT}
+
+        # Smarter search query focused on Karnataka
+        params = {
+            'q': f'{query} hospital Karnataka',
+            'format': 'json',
+            'limit': limit,
+            'addressdetails': 1,
+            'countrycodes': 'in'
+        }
+
+        response = requests.get(NOMINATIM_API_URL, params=params, headers=headers, timeout=8)
+
+        if response.status_code == 200:
+            results = response.json()
+            hospitals = []
+
+            for result in results:
+                hospital_name = extract_hospital_name_improved(result)
+                if hospital_name:  # Only include if we found a proper hospital name
+                    hospitals.append({
+                        'name': hospital_name,
+                        'location': extract_location(result),
+                        'type': 'osm',
+                        'lat': result.get('lat'),
+                        'lon': result.get('lon')
+                    })
+
+            return hospitals
+        return []
+
+    except Exception as e:
+        print(f"❌ OSM search error: {e}")
+        return []
+
+
+def extract_hospital_name_improved(result):
+    """Better hospital name extraction from OSM"""
+    address = result.get('address', {})
+    display_name = result.get('display_name', '')
+
+    # Priority order for hospital names
+    if address.get('hospital'):
+        return address['hospital']
+    elif address.get('name'):
+        name = address['name']
+        # Check if it's actually a hospital
+        hospital_keywords = ['hospital', 'medical', 'clinic', 'health', 'care', 'nursing']
+        if any(keyword in name.lower() for keyword in hospital_keywords):
+            return name
+    elif 'hospital' in display_name.lower():
+        # Extract hospital name from display name
+        parts = display_name.split(',')
+        for part in parts:
+            part = part.strip()
+            hospital_keywords = ['hospital', 'medical', 'clinic']
+            if any(keyword in part.lower() for keyword in hospital_keywords):
+                return part
+
+    return None
+
+
+def extract_location(result):
+    """Extract location from Nominatim result"""
+    address = result.get('address', {})
+    location_parts = []
+
+    # Build location string from address components
+    if address.get('city'):
+        location_parts.append(address['city'])
+    elif address.get('town'):
+        location_parts.append(address['town'])
+    elif address.get('village'):
+        location_parts.append(address['village'])
+
+    if address.get('state'):
+        location_parts.append(address['state'])
+
+    if address.get('country'):
+        location_parts.append(address['country'])
+
+    return ', '.join(location_parts) if location_parts else result.get('display_name', '')
+
+
+def init_karnataka_hospital_cache():
+    """Initialize Karnataka hospital cache"""
+    try:
+        if hospitals_collection.count_documents({}) == 0:
+            karnataka_hospitals = get_karnataka_hospital_database()
+            hospitals_collection.insert_many(karnataka_hospitals)
+            print("✅ Karnataka hospital cache initialized with 35+ hospitals including Davanagere")
+        else:
+            print("✅ Hospital cache already exists")
+    except Exception as e:
+        print(f"❌ Error initializing hospital cache: {e}")
+
+
+# -----------------------------
+# REAL-TIME HOSPITAL SEARCH API
+# -----------------------------
+@app.route("/api/hospitals/search", methods=["GET"])
+def search_hospitals_api():
+    """
+    Hybrid hospital search: OSM + Karnataka Local DB
+    """
+    query = request.args.get('q', '').strip()
+    limit = int(request.args.get('limit', 8))
+
+    if not query or len(query) < 2:
+        return jsonify({'hospitals': []})
+
+    try:
+        all_hospitals = []
+
+        # 1. Search in already registered hospitals
+        registered_hospitals = hospital_users.find({
+            "$or": [
+                {"hospital_name": {"$regex": query, "$options": "i"}},
+                {"location": {"$regex": query, "$options": "i"}}
+            ]
+        }).limit(2)
+
+        for hospital in registered_hospitals:
+            all_hospitals.append({
+                'name': hospital['hospital_name'],
+                'location': hospital.get('location', ''),
+                'type': 'registered'
+            })
+
+        # 2. Hybrid search (OSM + Local Karnataka)
+        if len(all_hospitals) < limit:
+            hybrid_results = search_hospitals_hybrid(query, limit - len(all_hospitals))
+
+            # Avoid duplicates
+            existing_names = {h['name'].lower() for h in all_hospitals}
+            for hospital in hybrid_results:
+                if hospital['name'].lower() not in existing_names:
+                    all_hospitals.append(hospital)
+
+        print(
+            f"🎯 Total results: {len(all_hospitals)} (Registered: {len([h for h in all_hospitals if h.get('type') == 'registered'])}, OSM: {len([h for h in all_hospitals if h.get('type') == 'osm'])}, Karnataka: {len([h for h in all_hospitals if h.get('type') == 'karnataka'])})")
+
+        return jsonify({'hospitals': all_hospitals[:limit]})
+
+    except Exception as e:
+        print(f"❌ Hospital search error: {e}")
+        # Ultimate fallback - local Karnataka only
+        local_results = search_karnataka_hospitals_local(query, limit)
+        return jsonify({'hospitals': local_results})
+
+
 if __name__ == "__main__":
     app.run(debug=True)
